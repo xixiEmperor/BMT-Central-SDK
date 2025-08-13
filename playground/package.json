@@ -1,0 +1,24 @@
+{
+  "name": "playground",
+  "version": "0.0.0",
+  "description": "BMT 平台 SDK 本地验证沙箱",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@platform/sdk-core": "workspace:*",
+    "@platform/sdk-http": "workspace:*",
+    "@platform/sdk-perf": "workspace:*",
+    "@platform/sdk-telemetry": "workspace:*",
+    "@platform/sdk-realtime": "workspace:*",
+    "@platform/adapters": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^5.0.10",
+    "typescript": "^5.3.2"
+  }
+}

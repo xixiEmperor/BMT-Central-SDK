@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BMT Platform SDK Playground</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+        text-align: center;
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .sdk-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 2px solid #e1e5e9;
+        border-radius: 12px;
+        background: #f8f9fa;
+      }
+      .sdk-section h2 {
+        color: #495057;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+      }
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .log-area {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+      }
+      .status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+      }
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .status.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 BMT Platform SDK 测试沙箱</h1>
+      
+      <div class="sdk-section">
+        <h2>📦 SDK Core</h2>
+        <div class="button-group">
+          <button id="test-task-queue">测试 TaskQueue</button>
+          <button id="test-retry">测试重试机制</button>
+          <button id="test-broadcast">测试跨标签页通信</button>
+        </div>
+        <div id="core-log" class="log-area">等待测试...</div>
+      </div>
+
+      <div class="sdk-section">
+        <h2>🌐 SDK HTTP</h2>
+        <div class="button-group">
+          <button id="test-http-get">GET 请求</button>
+          <button id="test-http-error">错误处理</button>
+          <button id="test-retry-http">重试机制</button>
+          <button id="test-circuit-breaker">熔断器</button>
+        </div>
+        <div id="http-log" class="log-area">等待测试...</div>
+      </div>
+
+      <div class="sdk-section">
+        <h2>📊 SDK Performance</h2>
+        <div class="button-group">
+          <button id="test-web-vitals">Web Vitals</button>
+          <button id="test-user-timing">User Timing</button>
+          <button id="test-performance-observer">Performance Observer</button>
+        </div>
+        <div id="perf-log" class="log-area">等待测试...</div>
+      </div>
+
+      <div class="sdk-section">
+        <h2>📈 SDK Telemetry</h2>
+        <div class="button-group">
+          <button id="test-track-event">发送事件</button>
+          <button id="test-page-view">页面浏览</button>
+          <button id="test-error-tracking">错误跟踪</button>
+          <button id="test-flush">强制上报</button>
+        </div>
+        <div id="telemetry-log" class="log-area">等待测试...</div>
+      </div>
+
+      <div class="sdk-section">
+        <h2>⚡ SDK Realtime</h2>
+        <div class="button-group">
+          <button id="test-connect">连接服务器</button>
+          <button id="test-subscribe">订阅消息</button>
+          <button id="test-publish">发布消息</button>
+          <button id="test-disconnect">断开连接</button>
+        </div>
+        <div id="realtime-log" class="log-area">等待测试...</div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

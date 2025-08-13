@@ -1,0 +1,34 @@
+{
+  "name": "@platform/sdk-http",
+  "version": "0.0.0",
+  "description": "BMT 平台 SDK HTTP 客户端 - Axios 单例、插件链、统一错误处理",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["http", "axios", "plugins", "retry", "circuit-breaker", "platform"],
+  "author": "BMT Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "@platform/sdk-core": "workspace:*",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "@platform/sdk-realtime",
+  "version": "0.0.0",
+  "description": "BMT 平台 SDK 实时通信 - Socket.IO 可靠通道、心跳重连、ack 机制",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["realtime", "socket.io", "websocket", "messaging", "platform"],
+  "author": "BMT Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "@platform/sdk-core": "workspace:*",
+    "socket.io-client": "^4.7.4"
+  },
+  "devDependencies": {
+  }
+}

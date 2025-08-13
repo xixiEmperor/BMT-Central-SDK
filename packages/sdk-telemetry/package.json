@@ -1,0 +1,34 @@
+{
+  "name": "@platform/sdk-telemetry",
+  "version": "0.0.0",
+  "description": "BMT 平台 SDK 遥测上报 - 事件缓冲、批量上报、跨标签页去重",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["telemetry", "analytics", "events", "beacon", "platform"],
+  "author": "BMT Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "@platform/sdk-core": "workspace:*",
+    "@platform/sdk-perf": "workspace:*"
+  },
+  "devDependencies": {
+  }
+}

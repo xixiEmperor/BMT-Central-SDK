@@ -1,0 +1,33 @@
+{
+  "name": "@platform/sdk-perf",
+  "version": "0.0.0",
+  "description": "BMT 平台 SDK 性能监控 - Web Vitals、PerformanceObserver、User Timing",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["performance", "web-vitals", "observer", "metrics", "platform"],
+  "author": "BMT Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "web-vitals": "^3.5.0"
+  },
+  "devDependencies": {
+  }
+}

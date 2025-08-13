@@ -1,0 +1,30 @@
+{
+  "name": "@platform/sdk-core",
+  "version": "0.0.0",
+  "description": "BMT 平台 SDK 核心能力 - TaskQueue、重试退避、跨标签页协调",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["task-queue", "retry", "broadcast", "locks", "platform"],
+  "author": "BMT Platform Team",
+  "license": "MIT",
+  "devDependencies": {
+  }
+}
