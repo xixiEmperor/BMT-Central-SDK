@@ -21,6 +21,30 @@ export interface AuthPluginOptions {
  * 创建认证插件
  */
 export function authPlugin(options: AuthPluginOptions = {}): HttpPlugin {
-  // TODO: 实现认证插件
-  throw new Error('Auth plugin not implemented yet')
+  const {
+    getToken = () => null,
+    refreshToken,
+    onTokenExpired,
+    tokenHeader = 'Authorization',
+    tokenPrefix = 'Bearer ',
+  } = options
+
+  return {
+    name: 'auth',
+    async onRequest(config) {
+      const token = await getToken()
+      if (token) {
+        config.headers = config.headers ?? {}
+        ;(config.headers as any)[tokenHeader] = `${tokenPrefix}${token}`
+      }
+      return config
+    },
+    async onError(error) {
+      // 简化处理：401 时触发回调，不做自动刷新
+      if (error && error.status === 401) {
+        try { await onTokenExpired?.() } catch {}
+      }
+      throw error
+    },
+  }
 }

@@ -21,6 +21,29 @@ export interface TelemetryPluginOptions {
  * 创建遥测插件
  */
 export function telemetryPlugin(options: TelemetryPluginOptions = {}): HttpPlugin {
-  // TODO: 实现遥测插件
-  throw new Error('Telemetry plugin not implemented yet')
+  const {
+    enabled = true,
+    sampleRate = 1.0,
+    onApiCall,
+  } = options
+
+  const shouldSample = () => Math.random() < sampleRate
+
+  const plugin: HttpPlugin = {
+    name: 'telemetry',
+    async onResponse(resp) {
+      if (!enabled) return resp.data
+      const config = resp.config
+      const url = config?.url ?? ''
+      const method = (config?.method ?? 'GET').toUpperCase()
+      const duration = (resp as any).duration ?? 0
+      const status = resp.status
+      if (shouldSample()) {
+        onApiCall?.(url, method, status, duration)
+      }
+      return resp.data
+    },
+  }
+
+  return plugin
 }

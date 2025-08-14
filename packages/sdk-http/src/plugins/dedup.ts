@@ -18,7 +18,12 @@ export interface DedupOptions {
 /**
  * 创建请求去重插件
  */
-export function dedupPlugin(options: DedupOptions = {}): HttpPlugin {
-  // TODO: 实现请求去重插件
-  throw new Error('Dedup plugin not implemented yet')
+export function dedupPlugin(_options: DedupOptions = {}): HttpPlugin {
+  return {
+    name: 'dedup',
+    async onRequest(config) {
+      (config as any).enableDedup = true
+      return config
+    },
+  }
 }

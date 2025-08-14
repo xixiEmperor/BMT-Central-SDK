@@ -19,6 +19,42 @@ export async function withLock<T>(
   fn: () => Promise<T>,
   options: Omit<LockOptions, 'name'> = {}
 ): Promise<T> {
-  // TODO: 实现互斥锁
-  throw new Error('Lock mechanism not implemented yet')
+  const { timeout = 10_000, ifAvailable = false } = options
+
+  // navigator.locks 支持
+  if (typeof navigator !== 'undefined' && (navigator as any).locks && typeof (navigator as any).locks.request === 'function') {
+    return new Promise<T>((resolve, reject) => {
+      let timer: any
+      const onTimeout = () => reject(new Error(`Lock '${key}' timeout after ${timeout}ms`))
+      timer = setTimeout(onTimeout, timeout)
+      ;(navigator as any).locks
+        .request(
+          key,
+          { ifAvailable, mode: 'exclusive', steal: false },
+          async (lock: any | null) => {
+            if (!lock && ifAvailable) {
+              clearTimeout(timer)
+              // 未获取到锁且允许 ifAvailable，则直接执行 fn（非互斥）
+              resolve(await fn())
+              return
+            }
+            try {
+              const result = await fn()
+              clearTimeout(timer)
+              resolve(result)
+            } catch (e) {
+              clearTimeout(timer)
+              reject(e)
+            }
+          }
+        )
+        .catch((err: any) => {
+          clearTimeout(timer)
+          reject(err)
+        })
+    })
+  }
+
+  // 降级：单 Tab 模式，直接执行
+  return fn()
 }

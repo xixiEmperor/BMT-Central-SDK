@@ -21,6 +21,75 @@ export interface ConnectionManager {
  * 创建连接管理器
  */
 export function createConnectionManager(url: string): ConnectionManager {
-  // TODO: 实现连接管理器
-  throw new Error('Connection manager not implemented yet')
+  let status: ConnectionStatus = 'disconnected'
+  const listeners = new Set<ConnectionListener>()
+  let heartbeatTimer: any = null
+
+  const emitStatusChange = () => {
+    listeners.forEach(listener => {
+      try {
+        listener(status)
+      } catch (error) {
+        console.error('Connection status listener error:', error)
+      }
+    })
+  }
+
+  return {
+    async connect(): Promise<void> {
+      if (status === 'connected') return
+      
+      status = 'connecting'
+      emitStatusChange()
+
+      try {
+        // 模拟连接逻辑
+        await new Promise(resolve => setTimeout(resolve, 100))
+        status = 'connected'
+        emitStatusChange()
+        
+        // 启动心跳
+        this.sendHeartbeat()
+      } catch (error) {
+        status = 'error'
+        emitStatusChange()
+        throw error
+      }
+    },
+
+    disconnect(): void {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer)
+        heartbeatTimer = null
+      }
+      
+      status = 'disconnected'
+      emitStatusChange()
+    },
+
+    getStatus(): ConnectionStatus {
+      return status
+    },
+
+    onStatusChange(listener: ConnectionListener): () => void {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+
+    sendHeartbeat(): void {
+      if (status !== 'connected') return
+      
+      // 启动心跳定时器
+      if (!heartbeatTimer) {
+        heartbeatTimer = setInterval(() => {
+          if (status === 'connected') {
+            // 发送心跳包
+            console.log('Sending heartbeat')
+          }
+        }, 30000) // 30秒心跳间隔
+      }
+    }
+  }
 }

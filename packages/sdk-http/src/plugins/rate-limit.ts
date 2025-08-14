@@ -17,6 +17,47 @@ export interface RateLimitOptions {
  * 创建限流插件
  */
 export function rateLimitPlugin(options: RateLimitOptions = {}): HttpPlugin {
-  // TODO: 实现限流插件
-  throw new Error('Rate limit plugin not implemented yet')
+  const { rps = 10, burst = rps, maxQueueSize = 100 } = options
+  let tokens = burst
+  let lastRefill = Date.now()
+  const queue: Array<() => void> = []
+
+  const refill = () => {
+    const now = Date.now()
+    const elapsed = (now - lastRefill) / 1000
+    const add = Math.floor(elapsed * rps)
+    if (add > 0) {
+      tokens = Math.min(tokens + add, burst)
+      lastRefill = now
+    }
+  }
+
+  const acquire = (): Promise<void> => {
+    refill()
+    if (tokens > 0) {
+      tokens--
+      return Promise.resolve()
+    }
+    if (queue.length >= maxQueueSize) {
+      return Promise.reject(new Error('Rate limit queue overflow'))
+    }
+    return new Promise((resolve) => queue.push(resolve))
+  }
+
+  setInterval(() => {
+    refill()
+    while (tokens > 0 && queue.length > 0) {
+      tokens--
+      const next = queue.shift()!
+      next()
+    }
+  }, 100)
+
+  return {
+    name: 'rate-limit',
+    async onRequest(config) {
+      await acquire()
+      return config
+    },
+  }
 }
