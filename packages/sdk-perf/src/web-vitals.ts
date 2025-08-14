@@ -172,7 +172,7 @@ function observeLCP(onMetric?: (metric: PerfMetric) => void): void {
   try {
     // 创建LCP观察器
     const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries()
+      const entries = list.getEntries() // 等价于performance.getEntriesByType('largest-contentful-paint')
       // LCP会随着页面加载进程更新，我们取最后一个值作为最终结果
       const lastEntry = entries[entries.length - 1]
       
@@ -442,8 +442,9 @@ function observeTTFB(onMetric?: (metric: PerfMetric) => void): void {
     const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
     
     if (navEntry) {
-      // TTFB = 响应开始时间 - 请求开始时间
-      const value = navEntry.responseStart - navEntry.requestStart
+      // TTFB = 响应开始时间 - 导航开始时间
+      // 这包含了所有组件：重定向、DNS查询、连接建立、请求等待等
+      const value = navEntry.responseStart - navEntry.fetchStart
       
       onMetric?.({
         type: 'vitals',
@@ -454,14 +455,18 @@ function observeTTFB(onMetric?: (metric: PerfMetric) => void): void {
         ts: Date.now(),
         source: 'web-vitals',
         attrs: {
-          requestStart: navEntry.requestStart,
+          fetchStart: navEntry.fetchStart,
           responseStart: navEntry.responseStart,
-          // 提供更多上下文信息便于分析
+          // TTFB的各个组成部分
+          redirectTime: navEntry.redirectEnd - navEntry.redirectStart,
           dnsLookup: navEntry.domainLookupEnd - navEntry.domainLookupStart,
           tcpConnect: navEntry.connectEnd - navEntry.connectStart,
           sslHandshake: navEntry.secureConnectionStart > 0 
             ? navEntry.connectEnd - navEntry.secureConnectionStart 
-            : 0
+            : 0,
+          requestWait: navEntry.responseStart - navEntry.requestStart,
+          // 用于验证计算
+          totalTTFB: navEntry.responseStart - navEntry.fetchStart
         }
       })
     } else {
