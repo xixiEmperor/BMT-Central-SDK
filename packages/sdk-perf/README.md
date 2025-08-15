@@ -1,8 +1,8 @@
-# @platform/sdk-perf
+# @wfynbzlx666/sdk-perf
 
 > 🚀 BMT 平台性能监控 SDK - 全面的 Web 性能监控解决方案
 
-[![npm version](https://img.shields.io/npm/v/@platform/sdk-perf.svg)](https://www.npmjs.com/package/@platform/sdk-perf)
+[![npm version](https://img.shields.io/npm/v/@wfynbzlx666/sdk-perf.svg)](https://www.npmjs.com/package/@wfynbzlx666/sdk-perf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 
@@ -22,7 +22,7 @@
 
 ## 📖 简介
 
-`@platform/sdk-perf` 是 BMT 平台提供的前端性能监控 SDK，为 Web 应用提供全面、精确的性能监控能力。它整合了 Web Vitals、Performance Observer、高级性能指标等多种监控技术，帮助开发者深入了解和优化应用性能。
+`@wfynbzlx666/sdk-perf` 是 BMT 平台提供的前端性能监控 SDK，为 Web 应用提供全面、精确的性能监控能力。它整合了 Web Vitals、Performance Observer、高级性能指标等多种监控技术，帮助开发者深入了解和优化应用性能。
 
 ### 🎯 设计目标
 
@@ -78,19 +78,19 @@
 
 ```bash
 # 使用 npm
-npm install @platform/sdk-perf
+npm install @wfynbzlx666/sdk-perf
 
 # 使用 yarn
-yarn add @platform/sdk-perf
+yarn add @wfynbzlx666/sdk-perf
 
 # 使用 pnpm
-pnpm add @platform/sdk-perf
+pnpm add @wfynbzlx666/sdk-perf
 ```
 
 ### 基础使用
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 // 初始化性能监控
 Perf.init({
@@ -109,7 +109,7 @@ Perf.init({
 最简单的用法，只监控核心 Web Vitals 指标：
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 // 最小配置
 Perf.init({
@@ -132,7 +132,7 @@ Perf.init({
 监控用户操作的响应时间：
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 // 初始化
 Perf.init({
@@ -171,7 +171,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 详细分析页面加载各个阶段的耗时：
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 Perf.init({
   onMetric: (metric) => {
@@ -216,7 +216,7 @@ window.addEventListener('load', () => {
 监控 React/Vue 组件的渲染性能：
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 // 初始化性能监控
 Perf.init({
@@ -268,7 +268,7 @@ function UserProfile({ userId }) {
 适合生产环境的完整配置示例：
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 // 生产环境配置
 Perf.init({
@@ -347,7 +347,7 @@ window.addEventListener('beforeunload', () => {
 开发环境的详细监控配置：
 
 ```typescript
-import { Perf } from '@platform/sdk-perf'
+import { Perf } from '@wfynbzlx666/sdk-perf'
 
 // 开发环境配置
 if (process.env.NODE_ENV === 'development') {
@@ -487,7 +487,7 @@ console.log('自定义时间:', snapshot.timing)
 **Web Vitals 监控**
 
 ```typescript
-import { initWebVitals } from '@platform/sdk-perf'
+import { initWebVitals } from '@wfynbzlx666/sdk-perf'
 
 initWebVitals({
   onMetric: (metric) => {
@@ -499,7 +499,7 @@ initWebVitals({
 **User Timing API**
 
 ```typescript
-import { mark, measure, clearMarks, clearMeasures, getEntriesByName, getEntriesByType } from '@platform/sdk-perf'
+import { mark, measure, clearMarks, clearMeasures, getEntriesByName, getEntriesByType } from '@wfynbzlx666/sdk-perf'
 
 // 创建标记和测量
 mark('custom-start')
@@ -519,7 +519,7 @@ clearMeasures('custom-duration')
 **高级性能指标**
 
 ```typescript
-import { startAdvancedMetrics, monitorCriticalRenderingPath, startMemoryLeakDetection } from '@platform/sdk-perf'
+import { startAdvancedMetrics, monitorCriticalRenderingPath, startMemoryLeakDetection } from '@wfynbzlx666/sdk-perf'
 
 // 启动高级指标监控
 const cleanup1 = startAdvancedMetrics({
@@ -549,7 +549,7 @@ cleanup3()
 **Performance Observer**
 
 ```typescript
-import { createPerformanceObserver } from '@platform/sdk-perf'
+import { createPerformanceObserver } from '@wfynbzlx666/sdk-perf'
 
 const observer = createPerformanceObserver({
   entryTypes: ['navigation', 'resource', 'longtask'],
@@ -1050,7 +1050,7 @@ if (process.env.NODE_ENV === 'development') {
 
 <div align="center">
 
-**@platform/sdk-perf** 由 **wfy666zlx666** 用 ❤️ 制作
+**@wfynbzlx666/sdk-perf** 由 **wfynbzlx666** 用 ❤️ 制作
 
 
 </div>

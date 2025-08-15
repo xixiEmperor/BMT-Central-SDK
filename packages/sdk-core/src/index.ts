@@ -13,8 +13,24 @@
 export type * from './types.js'
 
 // 导出 TaskQueue 相关
-export { createTaskQueue } from './task-queue.js'
-export type { Task, TaskQueueOptions } from './task-queue.js'
+export { 
+  createTaskQueue,
+  createHighConcurrencyTaskQueue,
+  createLowConcurrencyTaskQueue,
+  createDatabaseTaskQueue,
+  TaskQueueImpl
+} from './task-queue.js'
+export type { 
+  Task, 
+  TaskQueue,
+  TaskQueueOptions, 
+  TaskOptions,
+  TaskItem,
+  TaskStatus,
+  ProgressInfo,
+  QueueResults,
+  QueueStatus
+} from './task-queue.js'
 
 // 导出重试相关
 export { createRetry, withRetry } from './retry.js'
