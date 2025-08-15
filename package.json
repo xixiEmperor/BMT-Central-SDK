@@ -17,7 +17,13 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && pnpm changeset publish",
-    "playground": "cd playground && pnpm dev"
+    "playground": "cd playground && pnpm dev",
+    "publish": "./scripts/publish.sh",
+    "publish:single": "./scripts/publish.sh",
+    "prepublish": "pnpm -r typecheck && pnpm -r lint && pnpm -r build",
+    "version-bump": "./scripts/version-bump.sh",
+    "check-packages": "pnpm -r outdated",
+    "sync-versions": "pnpm changeset version"
   },
   "devDependencies": {
     "@changesets/cli": "^2.26.2",

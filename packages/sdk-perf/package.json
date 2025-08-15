@@ -1,6 +1,6 @@
 {
   "name": "@platform/sdk-perf",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "BMT 平台 SDK 性能监控 - Web Vitals、PerformanceObserver、User Timing",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,8 +23,17 @@
     "clean": "rm -rf dist"
   },
   "keywords": ["performance", "web-vitals", "observer", "metrics", "platform"],
-  "author": "BMT Platform Team",
+  "author": "wfy666zlx666",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/bmt-central-sdk.git",
+    "directory": "packages/sdk-perf"
+  },
   "dependencies": {
     "web-vitals": "^3.5.0"
   },
