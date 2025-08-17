@@ -72,3 +72,74 @@ export { HttpError } from './errors.js'
 
 /** HTTP 错误类型枚举 */
 export type { HttpErrorType } from './types.js'
+
+// ============ API 接口导出 ============
+
+// 统一API客户端
+export { default as BMTAPI } from './api/index.js'
+
+// 各个API模块
+export {
+  AuthAPI,
+  AuthManager,
+  TelemetryAPI,
+  TelemetryBatcher,
+  ConfigAPI,
+  HealthAPI,
+  HealthMonitor,
+  RealtimeAPI,
+  ChannelPermissions
+} from './api/index.js'
+
+// API类型定义
+export type {
+  // 通用类型
+  ErrorResponse,
+  User,
+  UserWithPermissions,
+  BaseResponse,
+  DataResponse,
+  
+  // 认证相关类型
+  LoginRequest,
+  LoginResponse,
+  RefreshRequest,
+  RefreshResponse,
+  VerifyResponse,
+  LogoutRequest,
+  
+  // 遥测相关类型
+  TelemetryEvent,
+  TelemetryEventType,
+  TelemetryBatch,
+  TelemetryResponse,
+  TelemetryStatsResponse,
+  
+  // 配置相关类型
+  SDKConfig,
+  ConfigParams,
+  
+  // 健康检查相关类型
+  HealthResponse,
+  ServiceStatus,
+  ServiceInfoResponse,
+  
+  // 实时通信相关类型
+  RealtimeStatsResponse,
+  BroadcastRequest,
+  
+  // Socket.IO 扩展类型
+  SocketMessage,
+  SocketEventMessage,
+  SocketNotification,
+  SocketAck,
+  SocketSubscribeRequest,
+  SocketUnsubscribeRequest,
+  SocketPublishRequest,
+  SocketHeartbeatRequest,
+  SocketHeartbeatResponse,
+  SocketConnectedData,
+  SocketResponse,
+  SocketClientEvents,
+  SocketServerEvents
+} from './api/index.js'

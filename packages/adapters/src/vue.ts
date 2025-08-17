@@ -24,7 +24,7 @@ export function createVueQueryDefaults(): VueQueryDefaults {
         retry: 3,
         retryDelay: 1000,
         staleTime: 5 * 60 * 1000, // 5分钟
-        cacheTime: 10 * 60 * 1000, // 10分钟
+        gcTime: 10 * 60 * 1000, // 10分钟
         refetchOnWindowFocus: false,
         refetchOnMount: true,
         refetchOnReconnect: true
@@ -54,13 +54,9 @@ export function createGlobalErrorHandler(): (error: Error) => void {
     // 可以在这里集成遥测上报
     try {
       // 动态导入telemetry模块
-      import('@platform/sdk-telemetry').then(({ Telemetry, createErrorEvent }) => {
+      import('@platform/sdk-telemetry').then(({ Telemetry }) => {
         if (Telemetry.isInitialized()) {
-          const event = createErrorEvent(error, {
-            context: 'vue_global_error',
-            component: 'unknown'
-          })
-          Telemetry.track(event)
+          Telemetry.trackError(error.name, error.message, error.stack)
         }
       }).catch(() => {
         // Telemetry模块不可用，忽略
@@ -84,14 +80,13 @@ export function createRouterPlugin(): unknown {
         router.beforeEach((to: any, from: any, next: any) => {
           // 页面浏览埋点
           try {
-            import('@platform/sdk-telemetry').then(({ Telemetry, createPageEvent }) => {
+            import('@platform/sdk-telemetry').then(({ Telemetry }) => {
               if (Telemetry.isInitialized()) {
-                const event = createPageEvent(to.path, {
+                Telemetry.trackPageView(to.path, {
                   title: to.meta?.title || document.title,
                   from: from.path,
                   query: to.query
                 })
-                Telemetry.track(event)
               }
             }).catch(() => {
               // Telemetry模块不可用，忽略

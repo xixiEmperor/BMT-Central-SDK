@@ -7,25 +7,79 @@ import type { ErrorHandler, RetryFn, DelayFn } from './types.js'
 /**
  * 创建默认错误处理器
  */
-export function createDefaultErrorHandler(): ErrorHandler {
-  return (error: Error) => {
-    // TODO: 集成 Telemetry.trackError
-    console.error('Query error:', error)
+export function createDefaultErrorHandler(options?: {
+  onError?: (error: Error, context?: string) => void
+  enableConsoleLog?: boolean
+  enableTelemetry?: boolean
+}): (error: Error, context?: string) => void {
+  const { onError, enableConsoleLog = true, enableTelemetry = false } = options || {}
+  
+  return (error: Error, context?: string) => {
+    // 控制台日志
+    if (enableConsoleLog) {
+      console.error('[Error Handler]:', error, context ? `(${context})` : '')
+    }
+    
+    // 自定义错误处理
+    if (onError) {
+      onError(error, context)
+    }
+    
+    // 遥测上报 (可选)
+    if (enableTelemetry) {
+      try {
+        // 动态导入避免循环依赖
+        import('@platform/sdk-telemetry').then(({ Telemetry }) => {
+          if (Telemetry.isInitialized()) {
+            Telemetry.trackError(error.name, error.message, error.stack)
+          }
+        }).catch(() => {
+          // 忽略遥测错误
+        })
+      } catch {
+        // 忽略遥测错误
+      }
+    }
   }
 }
 
 /**
  * 创建默认重试函数
  */
-export function createDefaultRetryFn(): RetryFn {
-  return (failureCount: number, error: Error) => {
-    // 最多重试 3 次
-    if (failureCount >= 3) {
-      return false
+export function createDefaultRetryFn(options?: {
+  maxAttempts?: number
+  baseDelayMs?: number
+  maxDelayMs?: number
+  jitter?: boolean
+}): (fn: () => Promise<any>, shouldRetry: (error: Error, attempt: number) => boolean) => Promise<any> {
+  const { maxAttempts = 3, baseDelayMs = 1000, maxDelayMs = 30000, jitter = false } = options || {}
+  
+  return async (fn: () => Promise<any>, shouldRetry: (error: Error, attempt: number) => boolean) => {
+    let lastError: Error
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn()
+      } catch (error) {
+        lastError = error as Error
+        
+        if (attempt >= maxAttempts || !shouldRetry(lastError, attempt)) {
+          throw lastError
+        }
+        
+        // 计算延迟时间
+        let delay = Math.min(baseDelayMs * Math.pow(2, attempt - 1), maxDelayMs)
+        
+        // 添加抖动
+        if (jitter) {
+          delay *= (0.5 + Math.random() * 0.5)
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
     }
     
-    // 检查是否为可重试错误
-    return isRetryableError(error)
+    throw lastError!
   }
 }
 

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useLogger } from '../hooks/useLogger'
 import LogArea from './LogArea'
+import { config } from '../config/env'
 
 const TelemetrySection: React.FC = () => {
   const { logs, log } = useLogger()
@@ -10,10 +11,14 @@ const TelemetrySection: React.FC = () => {
     
     if (!Telemetry.isInitialized()) {
       Telemetry.init({
-        endpoint: 'https://httpbin.org/post',
-        app: 'playground',
-        release: '1.0.0'
+        endpoint: config.telemetryEndpoint,
+        app: config.appName,
+        release: config.appVersion,
+        enableConsole: config.consoleLog,
+        batchSize: 10,
+        flushInterval: 5000
       })
+      log(`Telemetry SDK已初始化，端点：${config.telemetryEndpoint}`, 'info')
     }
     
     return Telemetry
@@ -29,8 +34,9 @@ const TelemetrySection: React.FC = () => {
         timestamp: Date.now()
       })
       
-      await Telemetry.track(event)
-      log(`已发送自定义事件：${JSON.stringify(event)}`, 'success')
+      // 使用具体的跟踪方法而不是通用的track方法
+      Telemetry.trackEvent(event.name, event.props)
+      log(`已发送自定义事件：${event.name}`, 'success')
     } catch (e: any) {
       log(`发送事件失败：${e?.message ?? e}`, 'error')
     }
@@ -46,8 +52,9 @@ const TelemetrySection: React.FC = () => {
         action: 'test'
       })
       
-      await Telemetry.track(event)
-      log(`已发送页面浏览事件：${JSON.stringify(event)}`, 'success')
+      // 使用具体的页面浏览跟踪方法
+      Telemetry.trackPageView(event.name, event.props)
+      log(`已发送页面浏览事件：${event.name}`, 'success')
     } catch (e: any) {
       log(`发送页面浏览事件失败：${e?.message ?? e}`, 'error')
     }
@@ -66,7 +73,8 @@ const TelemetrySection: React.FC = () => {
         severity: 'error'
       })
       
-      await Telemetry.track(event)
+      // 使用具体的错误跟踪方法
+      Telemetry.trackError(mockError.name, mockError.message, mockError.stack)
       log(`已发送错误事件：${mockError.message}`, 'success')
     } catch (e: any) {
       log(`发送错误事件失败：${e?.message ?? e}`, 'error')

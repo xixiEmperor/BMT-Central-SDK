@@ -12,7 +12,7 @@
   "dependencies": {
     "@platform/sdk-core": "workspace:*",
     "@platform/sdk-http": "workspace:*",
-    "@platform/sdk-perf": "workspace:*",
+    "@wfynbzlx666/sdk-perf": "workspace:*",
     "@platform/sdk-telemetry": "workspace:*",
     "@platform/sdk-realtime": "workspace:*",
     "@platform/adapters": "workspace:*",

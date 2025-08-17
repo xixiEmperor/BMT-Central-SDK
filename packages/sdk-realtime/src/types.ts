@@ -64,7 +64,7 @@ export interface PublishMessage<T = unknown> extends RealtimeMessage<T> {
 }
 
 // 消息监听器
-export type MessageListener<T = unknown> = (message: EventMessage<T>) => void
+export type MessageListener<T = unknown> = (message: RealtimeMessage<T>) => void
 
 // 连接状态监听器
 export type ConnectionListener = (status: ConnectionStatus, error?: Error) => void

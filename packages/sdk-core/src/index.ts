@@ -52,3 +52,11 @@ export {
   generateId,
   getCurrentTimestamp 
 } from './utils.js'
+
+// 导出SDK管理器 (简化版，避免循环依赖)
+export { SDKManager, sdkManager } from './sdk-manager-simple.js'
+export type { 
+  SDKInitOptions, 
+  SDKStatus, 
+  SDKStatusListener 
+} from './sdk-manager-simple.js'

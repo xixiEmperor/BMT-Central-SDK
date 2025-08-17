@@ -22,12 +22,36 @@ body {
 
 h1 {
   color: #333;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   text-align: center;
   font-size: 2.5rem;
   background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.section-info {
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.section-info p {
+  margin: 5px 0;
+  color: #1565c0;
+  font-weight: 500;
+}
+
+.section-info code {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #d32f2f;
 }
 
 .sdk-section {
@@ -107,4 +131,44 @@ button:disabled {
 .status.pending {
   background: #fff3cd;
   color: #856404;
+}
+
+/* 配置区域样式 */
+.config-section {
+  background: #f1f3f4;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.config-section label {
+  font-weight: 600;
+  color: #3c4043;
+  font-size: 14px;
+}
+
+.config-section select {
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  background: white;
+  color: #3c4043;
+  font-size: 14px;
+  min-width: 150px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.config-section select:hover {
+  border-color: #667eea;
+}
+
+.config-section select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }

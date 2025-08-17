@@ -1,5 +1,6 @@
 /**
  * 实时通信主入口
+ * 集成了后端管理API，提供统计信息和广播功能
  */
 
 import type { 
@@ -11,6 +12,7 @@ import type {
 import type { RealtimeMessage, EventMessage, AckMessage } from './types.js'
 import { io, Socket } from 'socket.io-client'
 import { generateId, sleep } from '@platform/sdk-core'
+import { RealtimeAPI, ChannelPermissions } from '@platform/sdk-http'
 
 export interface RealtimeOptions {
   /** WebSocket 服务器地址 */
@@ -58,13 +60,14 @@ export class Realtime {
   private static outboundQueue: Array<EventMessage<any>> = []
   private static reconnectCount = 0
   private static loopbackMode = false
+  private static heartbeatTimer: any = null
 
   /**
    * 初始化实时通信
    */
   static init(options: RealtimeOptions): void {
     // 存储配置并重置内部状态，使多次 init 可幂等
-    const merged: RealtimeOptions = {
+    const merged: Partial<RealtimeOptions> = {
       heartbeatInterval: 30_000,
       ackTimeout: 5_000,
       maxRetries: 3,
@@ -112,23 +115,34 @@ export class Realtime {
         reconnectionAttempts,
         reconnectionDelay,
         reconnectionDelayMax,
-        auth: token ? { token: `Bearer ${token}` } : undefined,
+        timeout: 20000,
+        auth: token ? { token: token.startsWith('Bearer ') ? token : `Bearer ${token}` } : undefined,
       })
 
       const s = this.socket
 
       // 建立连接成功：恢复订阅与队列
       s.on('connect', () => {
+        console.log('🔗 Socket连接建立, ID:', s.id)
         this.status = 'connected'
         this.loopbackMode = false
         this.emitConnection()
         this.resubscribeAll()
         this.flushQueue()
+        this.startHeartbeat()
         resolve()
       })
 
+      // 监听服务器连接确认
+      s.on('connected', (data) => {
+        console.log('✅ 服务器连接确认:', data)
+        this.emitConnection()
+      })
+
       // 断开：进入断开/重连中状态
-      s.on('disconnect', () => {
+      s.on('disconnect', (reason) => {
+        console.log('🔌 连接断开:', reason)
+        this.stopHeartbeat()
         this.status = reconnection ? 'reconnecting' : 'disconnected'
         this.emitConnection()
       })
@@ -164,6 +178,11 @@ export class Realtime {
         pending.resolve()
       })
 
+      // 心跳确认
+      s.on('heartbeat_ack', (data) => {
+        console.log('💓 心跳确认:', data)
+      })
+
       // 服务端错误透传
       s.on('error', (err: any) => {
         this.emitConnection(err instanceof Error ? err : new Error(String(err)))
@@ -175,6 +194,7 @@ export class Realtime {
    * 断开连接
    */
   static disconnect(): void {
+    this.stopHeartbeat()
     if (this.socket) {
       this.socket.disconnect()
       this.socket = null
@@ -196,7 +216,7 @@ export class Realtime {
       set = new Set()
       this.topicListeners.set(topic, set)
       // 首次订阅该 topic 时，向服务端发送 subscribe
-      this.send({ type: 'subscribe', topic })
+      this.sendSubscribe(topic)
     }
     set.add(listener as any)
 
@@ -218,10 +238,16 @@ export class Realtime {
   /**
    * 发布消息
    */
-  static publish<T = unknown>(topic: string, payload: T): Promise<void> {
-    const id = generateId()
-    const msg: EventMessage<T> = { type: 'event', topic, id, payload, ts: Date.now() }
-    return this.sendWithAck(msg)
+  static publish<T = unknown>(topic: string, payload: T, options: { ackRequired?: boolean } = {}): Promise<void> {
+    const messageId = generateId()
+    const msg = {
+      topic,
+      payload,
+      messageId,
+      timestamp: Date.now(),
+      ackRequired: options.ackRequired !== false
+    }
+    return this.sendPublishMessage(msg)
   }
 
   /**
@@ -258,6 +284,79 @@ export class Realtime {
       queueSize: this.outboundQueue.length,
       reconnectCount: this.reconnectCount,
     }
+  }
+
+  /**
+   * 获取服务器端统计信息
+   * @param accessToken 访问令牌（可选）
+   * @returns Promise<any> 服务器统计信息
+   */
+  static async getServerStats(accessToken?: string): Promise<any> {
+    try {
+      return await RealtimeAPI.getStats(accessToken)
+    } catch (error) {
+      console.warn('Failed to get server stats:', error)
+      return null
+    }
+  }
+
+  /**
+   * 发送系统广播（需要管理员权限）
+   * @param accessToken 管理员访问令牌
+   * @param level 广播级别
+   * @param message 广播消息
+   * @param targetUsers 目标用户（可选）
+   * @returns Promise<boolean> 是否广播成功
+   */
+  static async broadcast(
+    accessToken: string,
+    level: 'info' | 'warning' | 'error',
+    message: string,
+    targetUsers?: string[]
+  ): Promise<boolean> {
+    try {
+      const response = await RealtimeAPI.broadcast(accessToken, {
+        level,
+        message,
+        targetUsers
+      })
+      return response.success
+    } catch (error) {
+      console.error('Broadcast failed:', error)
+      return false
+    }
+  }
+
+  /**
+   * 检查频道访问权限
+   * @param channel 频道名称
+   * @param userRole 用户角色
+   * @param userId 用户ID
+   * @returns boolean 是否有访问权限
+   */
+  static canAccessChannel(channel: string, userRole: string, userId: string): boolean {
+    return ChannelPermissions.canAccess(channel, userRole, userId)
+  }
+
+  /**
+   * 检查频道发布权限
+   * @param channel 频道名称
+   * @param userRole 用户角色
+   * @param userId 用户ID
+   * @returns boolean 是否有发布权限
+   */
+  static canPublishToChannel(channel: string, userRole: string, userId: string): boolean {
+    return ChannelPermissions.canPublish(channel, userRole, userId)
+  }
+
+  /**
+   * 获取用户可访问的频道
+   * @param userRole 用户角色
+   * @param userId 用户ID
+   * @returns string[] 可访问的频道模式列表
+   */
+  static getAccessibleChannels(userRole: string, userId: string): string[] {
+    return ChannelPermissions.getAccessibleChannels(userRole, userId)
   }
 
   // 内部：发送消息（无 ACK）
@@ -321,10 +420,72 @@ export class Realtime {
     }
   }
 
+  // 内部：发送订阅请求
+  private static sendSubscribe(topic: string): void {
+    const messageId = generateId()
+    const subscribeData = {
+      topic,
+      messageId,
+      timestamp: Date.now()
+    }
+    
+    if (this.loopbackMode) {
+      console.log(`📡 本地模式订阅: ${topic}`)
+      return
+    }
+    
+    if (!this.socket || this.status !== 'connected') {
+      console.log(`⏳ 连接未就绪，订阅将在连接后重新发送: ${topic}`)
+      return
+    }
+    
+    this.socket.emit('subscribe', subscribeData, (response: any) => {
+      if (response?.status === 'success') {
+        console.log(`✅ 订阅成功: ${topic}`)
+        console.log(`👥 订阅者数量: ${response.subscriberCount}`)
+      } else {
+        console.error(`❌ 订阅失败: ${topic}`, response?.error)
+      }
+    })
+  }
+
+  // 内部：发送发布消息
+  private static async sendPublishMessage(messageData: any): Promise<void> {
+    if (this.loopbackMode) {
+      // 本地回环模式
+      console.log(`📤 本地模式发布: ${messageData.topic}`)
+      this.dispatchMessage({
+        type: 'event',
+        topic: messageData.topic,
+        payload: messageData.payload,
+        id: messageData.messageId,
+        ts: messageData.timestamp
+      })
+      return
+    }
+
+    if (!this.socket || this.status !== 'connected') {
+      throw new Error('连接未建立，无法发布消息')
+    }
+
+    return new Promise((resolve, reject) => {
+      this.socket!.emit('publish', messageData, (response: any) => {
+        if (response?.status === 'success') {
+          console.log(`📤 消息发布成功: ${messageData.topic}`)
+          console.log(`📊 送达数量: ${response.deliveredTo}`)
+          resolve()
+        } else {
+          console.error(`❌ 消息发布失败: ${messageData.topic}`, response?.error)
+          reject(new Error(response?.error || '发布失败'))
+        }
+      })
+    })
+  }
+
   // 内部：恢复所有订阅
   private static resubscribeAll(): void {
     for (const topic of this.topicListeners.keys()) {
-      this.send({ type: 'subscribe', topic })
+      this.sendSubscribe(topic)
     }
   }
 
@@ -340,6 +501,30 @@ export class Realtime {
   private static emitConnection(error?: Error): void {
     for (const l of this.connectionListeners) {
       try { l(this.status, error) } catch { /* 忽略监听器错误 */ }
+    }
+  }
+
+  // 内部：开始心跳
+  private static startHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer)
+    }
+    
+    const interval = this.options?.heartbeatInterval ?? 30_000
+    this.heartbeatTimer = setInterval(() => {
+      if (this.socket?.connected) {
+        this.socket.emit('heartbeat', {
+          timestamp: Date.now()
+        })
+      }
+    }, interval)
+  }
+
+  // 内部：停止心跳
+  private static stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer)
+      this.heartbeatTimer = null
     }
   }
 

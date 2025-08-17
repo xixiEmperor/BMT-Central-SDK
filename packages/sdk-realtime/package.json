@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@platform/sdk-core": "workspace:*",
+    "@platform/sdk-http": "workspace:*",
     "socket.io-client": "^4.7.4"
   },
   "devDependencies": {

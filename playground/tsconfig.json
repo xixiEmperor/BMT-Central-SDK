@@ -2,8 +2,12 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src/**/*", "*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "*.ts", "../packages/*/src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

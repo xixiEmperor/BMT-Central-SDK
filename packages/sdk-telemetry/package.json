@@ -36,7 +36,8 @@
   },
   "dependencies": {
     "@platform/sdk-core": "workspace:*",
-    "@platform/sdk-perf": "workspace:*"
+    "@wfynbzlx666/sdk-perf": "workspace:*",
+    "@platform/sdk-http": "workspace:*"
   },
   "devDependencies": {
   }

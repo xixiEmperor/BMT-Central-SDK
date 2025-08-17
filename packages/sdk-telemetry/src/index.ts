@@ -27,3 +27,20 @@ export {
 
 // 导出存储相关
 export type { TelemetryStorage } from './storage.js'
+
+// ============ API 接口导出 ============
+// 从 sdk-http 重新导出遥测相关的 API 接口，方便在遥测包中直接使用
+
+export {
+  TelemetryAPI,
+  TelemetryBatcher,
+  BMTAPI
+} from '@platform/sdk-http'
+
+export type {
+  TelemetryEvent as APITelemetryEvent,
+  TelemetryEventType,
+  TelemetryBatch,
+  TelemetryResponse,
+  TelemetryStatsResponse
+} from '@platform/sdk-http'

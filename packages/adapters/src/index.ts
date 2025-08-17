@@ -22,5 +22,75 @@ export type { VueQueryDefaults } from './vue.js'
 export { 
   createDefaultErrorHandler,
   createDefaultRetryFn,
+  createDefaultDelayFn,
   isRetryableError 
 } from './utils.js'
+
+// 导出适配器API
+export {
+  BMTAPI,
+  AuthManager,
+  ChannelPermissions
+} from './api.js'
+
+// ============ API 接口导出 ============
+// 从 sdk-http 重新导出所有 API 接口，方便在适配器中使用
+
+export {
+  AuthAPI,
+  TelemetryAPI,
+  TelemetryBatcher,
+  ConfigAPI,
+  HealthAPI,
+  RealtimeAPI
+} from '@platform/sdk-http'
+
+export type {
+  // 通用类型
+  ErrorResponse,
+  User,
+  UserWithPermissions,
+  BaseResponse,
+  DataResponse,
+  
+  // 认证相关类型
+  LoginRequest,
+  LoginResponse,
+  RefreshRequest,
+  RefreshResponse,
+  VerifyResponse,
+  LogoutRequest,
+  
+  // 遥测相关类型
+  TelemetryEvent,
+  TelemetryEventType,
+  TelemetryBatch,
+  TelemetryResponse,
+  TelemetryStatsResponse,
+  
+  // 配置相关类型
+  SDKConfig,
+  ConfigParams,
+  
+  // 健康检查相关类型
+  HealthResponse,
+  ServiceStatus,
+  ServiceInfoResponse,
+  
+  // 实时通信相关类型
+  RealtimeStatsResponse,
+  BroadcastRequest,
+  SocketMessage,
+  SocketEventMessage,
+  SocketNotification,
+  SocketAck,
+  SocketSubscribeRequest,
+  SocketUnsubscribeRequest,
+  SocketPublishRequest,
+  SocketHeartbeatRequest,
+  SocketHeartbeatResponse,
+  SocketConnectedData,
+  SocketResponse,
+  SocketClientEvents,
+  SocketServerEvents
+} from '@platform/sdk-http'

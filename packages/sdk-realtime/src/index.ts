@@ -23,3 +23,30 @@ export type { ConnectionManager } from './connection.js'
 
 // 导出消息处理
 export type { MessageHandler } from './message-handler.js'
+
+// ============ API 接口导出 ============
+// 从 sdk-http 重新导出实时通信相关的 API 接口
+
+export {
+  RealtimeAPI,
+  ChannelPermissions,
+  BMTAPI
+} from '@platform/sdk-http'
+
+export type {
+  RealtimeStatsResponse,
+  BroadcastRequest,
+  SocketMessage,
+  SocketEventMessage,
+  SocketNotification,
+  SocketAck,
+  SocketSubscribeRequest,
+  SocketUnsubscribeRequest,
+  SocketPublishRequest,
+  SocketHeartbeatRequest,
+  SocketHeartbeatResponse,
+  SocketConnectedData,
+  SocketResponse,
+  SocketClientEvents,
+  SocketServerEvents
+} from '@platform/sdk-http'

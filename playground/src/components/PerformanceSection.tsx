@@ -8,7 +8,7 @@ const PerformanceSection: React.FC = () => {
 
   const testWebVitals = async () => {
     try {
-      const { initWebVitals } = await import('@platform/sdk-perf')
+      const { initWebVitals } = await import('@wfynbzlx666/sdk-perf')
       initWebVitals({
         onMetric: (metric) => {
           log(`Web Vitals - ${metric.name}: ${metric.value}${metric.unit || 'ms'} (${metric.rating})`, 'success')
@@ -22,7 +22,7 @@ const PerformanceSection: React.FC = () => {
 
   const testUserTiming = async () => {
     try {
-      const { mark, measure, getEntriesByType } = await import('@platform/sdk-perf')
+      const { mark, measure, getEntriesByType } = await import('@wfynbzlx666/sdk-perf')
       
       mark('demo-start')
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -40,7 +40,7 @@ const PerformanceSection: React.FC = () => {
 
   const testPerformanceObserver = async () => {
     try {
-      const { createPerformanceObserver } = await import('@platform/sdk-perf')
+      const { createPerformanceObserver } = await import('@wfynbzlx666/sdk-perf')
       
       const observer = createPerformanceObserver({
         entryTypes: ['navigation', 'paint', 'resource', 'longtask'],
@@ -67,7 +67,7 @@ const PerformanceSection: React.FC = () => {
 
   const testAdvancedMetrics = async () => {
     try {
-      const { startAdvancedMetrics } = await import('@platform/sdk-perf')
+      const { startAdvancedMetrics } = await import('@wfynbzlx666/sdk-perf')
       
       if (cleanupRef.current) {
         cleanupRef.current()
@@ -98,7 +98,7 @@ const PerformanceSection: React.FC = () => {
 
   const testFpsMonitoring = async () => {
     try {
-      const { startAdvancedMetrics } = await import('@platform/sdk-perf')
+      const { startAdvancedMetrics } = await import('@wfynbzlx666/sdk-perf')
       
       if (cleanupRef.current) {
         cleanupRef.current()
@@ -144,7 +144,7 @@ const PerformanceSection: React.FC = () => {
 
   const testMemoryMonitoring = async () => {
     try {
-      const { startMemoryLeakDetection } = await import('@platform/sdk-perf')
+      const { startMemoryLeakDetection } = await import('@wfynbzlx666/sdk-perf')
       
       const cleanup = startMemoryLeakDetection((metric) => {
         log(`内存监控 - ${metric.name}: ${(metric.value * 100).toFixed(2)}% 趋势`, metric.rating === 'good' ? 'success' : 'error')
@@ -175,7 +175,7 @@ const PerformanceSection: React.FC = () => {
 
   const testPerformanceSnapshot = async () => {
     try {
-      const { Perf } = await import('@platform/sdk-perf')
+      const { Perf } = await import('@wfynbzlx666/sdk-perf')
       
       const snapshot = Perf.getPerformanceSnapshot()
       log(`性能快照已生成`, 'success')
@@ -193,7 +193,7 @@ const PerformanceSection: React.FC = () => {
 
   const testComprehensivePerf = async () => {
     try {
-      const { Perf } = await import('@platform/sdk-perf')
+      const { Perf } = await import('@wfynbzlx666/sdk-perf')
       
       Perf.init({
         enableDetailedMonitoring: true,

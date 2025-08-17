@@ -165,7 +165,7 @@ function processPerformanceEntry(
     case 'first-input':
       // 处理首次输入延迟（FID）指标
       const fidEntry = entry as any
-      const fidValue = fidEntry.processingStart - fidEntry.startTime // 计算输入延迟时间
+      const fidValue = fidEntry.processingStart - fidEntry.fetchStart // 计算输入延迟时间
       onMetric?.({
         ...baseMetric,
         type: 'first-input',

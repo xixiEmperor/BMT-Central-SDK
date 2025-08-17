@@ -20,9 +20,9 @@ export type QueryFn<T = unknown> = () => Promise<T>
 // 通用查询选项
 export interface BaseQueryOptions<T = unknown> {
   /** 查询键 */
-  queryKey: QueryKey
+  queryKey?: QueryKey
   /** 查询函数 */
-  queryFn: QueryFn<T>
+  queryFn?: QueryFn<T>
   /** 数据缓存时间（毫秒） */
   staleTime?: number
   /** 垃圾回收时间（毫秒） */
@@ -35,4 +35,10 @@ export interface BaseQueryOptions<T = unknown> {
   onError?: ErrorHandler
   /** 是否启用 */
   enabled?: boolean
+  /** 窗口获得焦点时重新获取 */
+  refetchOnWindowFocus?: boolean
+  /** 组件挂载时重新获取 */
+  refetchOnMount?: boolean
+  /** 重新连接时重新获取 */
+  refetchOnReconnect?: boolean
 }
