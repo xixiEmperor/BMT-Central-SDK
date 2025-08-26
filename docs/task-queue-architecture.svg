@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="720" viewBox="0 0 980 720">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#333" />
+    </marker>
+    <style>
+      .box { fill: #f9fbff; stroke: #3b82f6; stroke-width: 2; rx: 8; }
+      .box-alt { fill: #fffaf0; stroke: #f59e0b; stroke-width: 2; rx: 8; }
+      .box-danger { fill: #fff5f5; stroke: #ef4444; stroke-width: 2; rx: 8; }
+      .title { font: 700 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: #111827; }
+      .label { font: 13px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: #111827; }
+      .small { font: 12px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: #374151; }
+      .link { stroke: #333; stroke-width: 1.6; marker-end: url(#arrow); }
+      .lane { fill: none; stroke: #e5e7eb; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="20" y="32" class="title">Task Queue（任务队列）架构与时序（核心流程）</text>
+  <text x="20" y="56" class="small">流程：addTask → 调度 processQueue → executeTask（Promise.race 超时）→ 成功/失败 → 重试/归档 → 回调统计</text>
+
+  <!-- Swimlanes -->
+  <line x1="10" y1="80" x2="970" y2="80" class="lane"/>
+  <text x="20" y="100" class="small">业务侧（Producer）</text>
+  <line x1="10" y1="130" x2="970" y2="130" class="lane"/>
+  <text x="20" y="150" class="small">调度与队列（TaskQueueImpl）</text>
+  <line x1="10" y1="390" x2="970" y2="390" class="lane"/>
+  <text x="20" y="410" class="small">执行与容错（Executor/Timeout/Retry）</text>
+
+  <!-- Producer box -->
+  <rect x="40" y="170" width="200" height="70" class="box"/>
+  <text x="55" y="200" class="label">业务提交任务</text>
+  <text x="55" y="220" class="small">Task<T>(data?, signal?) → Promise</text>
+
+  <!-- Queue box -->
+  <rect x="280" y="160" width="240" height="180" class="box"/>
+  <text x="295" y="190" class="label">任务队列（优先级/统计）</text>
+  <text x="295" y="210" class="small">- 按 priority 降序排序</text>
+  <text x="295" y="230" class="small">- stats: total/completed/failed/…</text>
+  <text x="295" y="250" class="small">- 回调：onProgress/onTaskComplete/…</text>
+
+  <!-- Scheduler box -->
+  <rect x="560" y="160" width="180" height="120" class="box-alt"/>
+  <text x="575" y="190" class="label">调度器 processQueue</text>
+  <text x="575" y="210" class="small">- 并发闸门 maxConcurrent</text>
+  <text x="575" y="228" class="small">- 节流 requestInterval</text>
+
+  <!-- Executing map -->
+  <rect x="760" y="160" width="180" height="120" class="box"/>
+  <text x="775" y="190" class="label">执行中 Map</text>
+  <text x="775" y="210" class="small">- id → TaskItem</text>
+  <text x="775" y="228" class="small">- AbortController</text>
+
+  <!-- Arrows: Producer -> Queue -->
+  <line x1="240" y1="205" x2="280" y2="205" class="link"/>
+  <text x="240" y="195" class="small">addTask</text>
+
+  <!-- Arrows: Queue -> Scheduler -->
+  <line x1="520" y1="205" x2="560" y2="205" class="link"/>
+  <text x="520" y="195" class="small">出队（高优先先）</text>
+
+  <!-- Arrows: Scheduler -> Executing -->
+  <line x1="740" y1="205" x2="760" y2="205" class="link"/>
+  <text x="705" y="195" class="small">并发 < maxConcurrent</text>
+
+  <!-- Executor block -->
+  <rect x="120" y="430" width="240" height="200" class="box"/>
+  <text x="135" y="460" class="label">executeTask</text>
+  <text x="135" y="480" class="small">- 记录 startTime/status=executing</text>
+  <text x="135" y="498" class="small">- 创建 AbortController</text>
+
+  <!-- Promise.race block -->
+  <rect x="390" y="430" width="210" height="200" class="box-alt"/>
+  <text x="405" y="460" class="label">Promise.race</text>
+  <text x="405" y="480" class="small">taskPromise vs timeoutPromise</text>
+  <text x="405" y="498" class="small">timeout → Error("超时")</text>
+
+  <!-- Success block -->
+  <rect x="630" y="430" width="150" height="90" class="box"/>
+  <text x="645" y="460" class="label">成功 completed</text>
+  <text x="645" y="480" class="small">记录耗时与结果</text>
+
+  <!-- Fail/Retry block -->
+  <rect x="630" y="540" width="220" height="90" class="box-danger"/>
+  <text x="645" y="570" class="label">失败 handleTaskError</text>
+  <text x="645" y="590" class="small">retryDelay × retries → 重试/归档</text>
+
+  <!-- Callbacks block -->
+  <rect x="810" y="430" width="150" height="200" class="box"/>
+  <text x="825" y="460" class="label">回调/统计</text>
+  <text x="825" y="480" class="small">onProgress</text>
+  <text x="825" y="498" class="small">onTaskComplete</text>
+  <text x="825" y="516" class="small">onQueueComplete</text>
+
+  <!-- Links down to executor -->
+  <line x1="850" y1="280" x2="850" y2="430" class="link"/>
+  <text x="855" y="360" class="small">执行结果上报</text>
+
+  <!-- Links: Executing -> Executor -->
+  <line x1="820" y1="280" x2="260" y2="430" class="link"/>
+
+  <!-- Links: Executor -> race -->
+  <line x1="360" y1="530" x2="390" y2="530" class="link"/>
+
+  <!-- Links: race -> success -->
+  <line x1="600" y1="470" x2="630" y2="470" class="link"/>
+
+  <!-- Links: race -> fail -->
+  <line x1="600" y1="590" x2="630" y2="590" class="link"/>
+
+  <!-- Links: success -> callbacks -->
+  <line x1="780" y1="470" x2="810" y2="470" class="link"/>
+
+  <!-- Links: fail -> callbacks -->
+  <line x1="850" y1="585" x2="860" y2="585" class="link"/>
+
+  <!-- Links: fail -> retry (back to queue) -->
+  <line x1="680" y1="630" x2="400" y2="300" class="link"/>
+  <text x="465" y="610" class="small">重试 → 重新入队</text>
+
+  <!-- Notes -->
+  <text x="40" y="670" class="small">注：stop 触发 AbortController 中断在途任务；updateConfig 可运行期动态调参。</text>
+</svg>
