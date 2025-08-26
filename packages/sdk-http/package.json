@@ -1,6 +1,6 @@
 {
-  "name": "@platform/sdk-http",
-  "version": "0.0.0",
+  "name": "@wfynbzlx666/sdk-http",
+  "version": "0.0.1",
   "description": "BMT 平台 SDK HTTP 客户端 - Axios 单例、插件链、统一错误处理",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,7 @@
     "clean": "rm -rf dist"
   },
   "keywords": ["http", "axios", "plugins", "retry", "circuit-breaker", "platform"],
-  "author": "BMT Platform Team",
+  "author": "wfynbzlx666",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
@@ -31,11 +31,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/bmt-central-sdk.git",
+    "url": "https://github.com/xixiEmperor/BMT-Central-SDK",
     "directory": "packages/sdk-http"
   },
   "dependencies": {
-    "@platform/sdk-core": "workspace:*",
+    "@wfynbzlx666/sdk-core": "workspace:*",
     "axios": "^1.6.2"
   },
   "devDependencies": {

@@ -286,6 +286,7 @@ export function initHttp(options: HttpClientOptions): HttpClient {
     }
 
     // 包装重试逻辑的函数
+    // execWithRetry只是一个函数名，执行后返回任务函数，等同于execWithRetry = await fn()
     const execWithRetry = () => withRetry(exec, { ...(retry ?? {}), ...(config?.retryConfig ?? {}) })
 
     // ============ 请求去重逻辑 ============
@@ -296,11 +297,12 @@ export function initHttp(options: HttpClientOptions): HttpClient {
       // 如果相同请求正在进行中，直接返回该 Promise
       if (inflightMap.has(key)) return inflightMap.get(key) as Promise<T>
       // 执行请求并在完成后清理去重映射
+      // 这里execWithRetry()是异步的，不会阻塞同步代码执行，所以会先set再等待请求执行完后触发finally，删除inflightMap中的key
       const p = execWithRetry().finally(() => inflightMap.delete(key))
       inflightMap.set(key, p)
       return p
     }
-    // 不需要去重时直接执行
+    // 不需要去重时直接执行，返回任务函数
     return execWithRetry()
   }
 
@@ -329,6 +331,8 @@ export function initHttp(options: HttpClientOptions): HttpClient {
 
   // ============ 更新全局单例对象 ============
   // 将客户端方法绑定到全局 http 对象上，实现单例模式
+  // http中原本的get等处理逻辑会被client中的请求逻辑覆盖
+  // client中的get,post等都是被makeRequest处理过的
   ;(http as any).get = client.get
   ;(http as any).post = client.post
   ;(http as any).put = client.put

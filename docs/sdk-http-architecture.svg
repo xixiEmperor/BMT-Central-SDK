@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="980" viewBox="0 0 1360 980">
+  <defs>
+    <style>
+      .title { font: 700 26px/1.4 Helvetica, Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 600 16px/1.4 Helvetica, Arial, sans-serif; fill: #111827; }
+      .text { font: 13px/1.5 Helvetica, Arial, sans-serif; fill: #111827; }
+      .muted { fill: #4b5563; font: 12px Helvetica, Arial, sans-serif; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.2; rx: 8; }
+      .box-accent { fill: #f8fafc; stroke: #93c5fd; stroke-width: 1.4; rx: 8; }
+      .box-plugin { fill: #f0f9ff; stroke: #38bdf8; stroke-width: 1.2; rx: 6; }
+      .box-core { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.4; rx: 10; }
+      .group { fill: none; stroke: #d1d5db; stroke-width: 1.5; stroke-dasharray: 6 6; rx: 12; }
+      .arrow { stroke: #64748b; stroke-width: 1.6; fill: none; marker-end: url(#arrowHead); }
+      .arrow-strong { stroke: #0f766e; stroke-width: 2; fill: none; marker-end: url(#arrowHeadStrong); }
+      .badge { fill: #eef2ff; stroke: #a5b4fc; stroke-width: 1; rx: 6; }
+      .step { font: 600 12px Helvetica, Arial, sans-serif; fill: #0f766e; }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#64748b" />
+    </marker>
+    <marker id="arrowHeadStrong" markerWidth="12" markerHeight="12" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3.5 L0,7 Z" fill="#0f766e" />
+    </marker>
+  </defs>
+
+  <!-- 标题 -->
+  <text class="title" x="40" y="48">@platform/sdk-http 架构（优化版）</text>
+  <text class="muted" x="40" y="72">层次化视图：对外导出 → HttpClient 核心 → 插件链 → 传输/拦截器</text>
+
+  <!-- 顶层：对外 API -->
+  <rect class="group" x="24" y="90" width="1312" height="140" />
+  <text class="subtitle" x="40" y="115">一、对外 API 与导出</text>
+  <rect class="box" x="40" y="130" width="360" height="86" />
+  <text class="text" x="56" y="156">核心导出</text>
+  <text class="muted" x="56" y="176">initHttp(options), http（单例）</text>
+  <text class="muted" x="56" y="196">client.ts: initHttp L178 · http 单例 L354</text>
+
+  <rect class="box" x="420" y="130" width="420" height="86" />
+  <text class="text" x="436" y="156">统一 API 客户端</text>
+  <text class="muted" x="436" y="176">BMTAPI + { AuthAPI, TelemetryAPI, ConfigAPI, HealthAPI, RealtimeAPI }</text>
+  <text class="muted" x="436" y="196">聚合平台管理与服务端接口</text>
+
+  <rect class="box" x="860" y="130" width="456" height="86" />
+  <text class="text" x="876" y="156">类型与错误</text>
+  <text class="muted" x="876" y="176">HttpRequestConfig, HttpError, HttpErrorType, HttpResponse ...</text>
+  <text class="muted" x="876" y="196">统一错误模型与元数据（fromCache、retryCount）</text>
+
+  <!-- 中层：HttpClient 核心 -->
+  <rect class="group" x="24" y="250" width="1312" height="420" />
+  <text class="subtitle" x="40" y="275">二、HttpClient 核心与请求生命周期</text>
+
+  <!-- HttpClient Core Box -->
+  <rect class="box-core" x="40" y="290" width="640" height="360" />
+  <text class="subtitle" x="56" y="316">HttpClient 核心</text>
+  <text class="text" x="56" y="342">- 单例 http: { get, post, put, delete, patch, head, options }</text>
+  <text class="text" x="56" y="364">- initHttp(): 创建 axios 实例 + 计时拦截器</text>
+  <text class="text" x="56" y="386">- makeRequest(): 组装请求、应用插件、错误映射</text>
+  <text class="text" x="56" y="408">- stableStringify()/buildDedupKey(): 生成请求去重键</text>
+  <text class="text" x="56" y="430">- inflightMap: Map&lt;key, Promise&gt; 实现去重</text>
+  <text class="text" x="56" y="452">- applyOnRequest/Response/Error: 插件链处理</text>
+
+  <!-- 重试 & 去重 & 错误映射 子卡片 -->
+  <rect class="box-accent" x="56" y="472" width="608" height="70" />
+  <text class="text" x="72" y="496">自动重试 withRetry(exec, retryOptions)</text>
+  <text class="muted" x="72" y="516">来源：@platform/sdk-core；支持 retries/baseMs/capMs/strategy/jitter</text>
+
+  <rect class="box-accent" x="56" y="552" width="608" height="60" />
+  <text class="text" x="72" y="576">请求去重</text>
+  <text class="muted" x="72" y="596">enableDedup + 全局开关 → inflightMap 保证相同请求只发一次</text>
+
+  <rect class="box-accent" x="56" y="612" width="608" height="84" />
+  <text class="text" x="72" y="636">错误映射</text>
+  <text class="muted" x="72" y="656">AxiosError → HttpError.{ timeout | http(status) | network }；继续走 onError 链</text>
+
+  <!-- 右侧：插件层 -->
+  <rect class="box-core" x="700" y="290" width="636" height="360" />
+  <text class="subtitle" x="716" y="316">插件层（Plugin Chain）</text>
+  <text class="text" x="716" y="342">生命周期：onRequest → onResponse | onError</text>
+  <text class="muted" x="716" y="362">按注册顺序串行执行；错误不阻塞转抛</text>
+
+  <!-- 插件卡片 -->
+  <rect class="box-plugin" x="716" y="380" width="292" height="58" />
+  <text class="text" x="732" y="406">auth 插件</text>
+  <text class="muted" x="732" y="426">为请求添加 Authorization；401 触发 onTokenExpired</text>
+
+  <rect class="box-plugin" x="1016" y="380" width="304" height="96" />
+  <text class="text" x="1032" y="406">retry 插件</text>
+  <text class="muted" x="1032" y="426">向请求注入 __retry 配置（幂等方法/状态码）</text>
+  <text class="muted" x="1032" y="444">methods: GET · HEAD · OPTIONS · PUT · DELETE</text>
+  <text class="muted" x="1032" y="462">status: 408 · 429 · 500 · 502 · 503 · 504</text>
+
+  <rect class="box-plugin" x="716" y="446" width="292" height="58" />
+  <text class="text" x="732" y="472">circuit-breaker 插件</text>
+  <text class="muted" x="732" y="492">失败率熔断（closed/open/half-open）</text>
+
+  <rect class="box-plugin" x="1016" y="486" width="304" height="58" />
+  <text class="text" x="1032" y="512">rate-limit 插件</text>
+  <text class="muted" x="1032" y="532">请求频率限制（rps）</text>
+
+  <rect class="box-plugin" x="716" y="512" width="292" height="58" />
+  <text class="text" x="732" y="538">dedup 插件</text>
+  <text class="muted" x="732" y="558">可与全局去重开关协同</text>
+
+  <rect class="box-plugin" x="1016" y="552" width="304" height="58" />
+  <text class="text" x="1032" y="578">telemetry 插件</text>
+  <text class="muted" x="1032" y="598">采集请求指标（duration 等）</text>
+
+  <rect class="box-plugin" x="716" y="578" width="292" height="58" />
+  <text class="text" x="732" y="604">mock 插件</text>
+  <text class="muted" x="732" y="624">开发/测试时短路返回数据</text>
+
+  <!-- 底层：传输 -->
+  <rect class="group" x="24" y="690" width="1312" height="210" />
+  <text class="subtitle" x="40" y="716">三、底层传输与拦截器</text>
+
+  <rect class="box" x="40" y="734" width="640" height="134" />
+  <text class="text" x="56" y="760">Axios 实例</text>
+  <text class="muted" x="56" y="780">axios.create({ baseURL, timeout, headers, validateStatus })</text>
+  <text class="muted" x="56" y="800">请求拦截器：记录 __startTime</text>
+  <text class="muted" x="56" y="820">响应拦截器：计算 duration 并附着到响应/错误</text>
+
+  <rect class="box" x="700" y="734" width="636" height="134" />
+  <text class="text" x="716" y="760">请求生命周期（编号步骤）</text>
+  <text class="step" x="716" y="780">1. 调用 http.get/post 等（对外 API）</text>
+  <text class="step" x="716" y="796">2. onRequest 插件链处理（认证/去重/重试配置/熔断检查）</text>
+  <text class="step" x="716" y="812">3. 发送至 Axios（统一拦截器记录与耗时统计）</text>
+  <text class="step" x="716" y="828">4. onResponse/onError 插件链处理 → 错误映射为 HttpError</text>
+  <text class="step" x="716" y="844">5. 返回响应 data（附加 meta：duration、retryCount、fromCache）</text>
+
+  <!-- 连接箭头：对外API → 核心/业务API关系 -->
+  <line class="arrow-strong" x1="220" y1="216" x2="340" y2="288" />
+  <line class="arrow-strong" x1="630" y1="216" x2="460" y2="288" />
+  <line class="arrow-strong" x1="1090" y1="216" x2="900" y2="288" />
+
+  <!-- 连接箭头：核心 → 插件链 → Axios → 回流 -->
+  <line class="arrow" x1="360" y1="446" x2="700" y2="446" />
+  <line class="arrow" x1="1018" y1="638" x2="1018" y2="734" />
+  <line class="arrow" x1="360" y1="802" x2="700" y2="802" />
+
+  <!-- 角标/来源说明 -->
+  <rect class="badge" x="1080" y="70" width="240" height="28" />
+  <text class="muted" x="1092" y="89">基于 axios 与 @platform/sdk-core 重试能力</text>
+
+  <!-- 参考文件列表 -->
+  <rect class="box" x="40" y="900" width="1296" height="48" />
+  <text class="muted" x="56" y="928">参考代码：packages/sdk-http/src/client.ts · plugins/*.ts · errors.ts · types.ts · api/*.ts · index.ts</text>
+</svg>
