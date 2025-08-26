@@ -186,7 +186,7 @@ export function createRetry(options: RetryOptions = {}) {
     // 执行重试循环
     for (let attempt = 0; attempt < totalAttempts; attempt++) {
       try {
-        // 尝试执行目标函数
+        // 尝试执行目标函数，执行成功了才返回，否则被catch捕获
         return await fn()
       } catch (error) {
         // 保存错误信息，用于最终抛出
