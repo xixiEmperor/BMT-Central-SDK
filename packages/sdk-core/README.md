@@ -1,4 +1,4 @@
-# @platform/sdk-core
+# @wfynbzlx666/sdk-core
 
 BMT 平台 SDK 核心能力包，提供高性能的任务队列管理、重试机制、跨标签页通信和互斥锁等核心功能。
 
@@ -13,7 +13,7 @@ BMT 平台 SDK 核心能力包，提供高性能的任务队列管理、重试�
 ## 📦 安装
 
 ```bash
-npm install @platform/sdk-core
+npm install @wfynbzlx666/sdk-core
 ```
 
 ## 🎯 核心模块
@@ -34,7 +34,7 @@ npm install @platform/sdk-core
 #### 🚀 快速开始
 
 ```typescript
-import { createTaskQueue } from '@platform/sdk-core'
+import { createTaskQueue } from '@wfynbzlx666/sdk-core'
 
 // 创建任务队列
 const queue = createTaskQueue({
@@ -68,7 +68,7 @@ import {
   createHighConcurrencyTaskQueue,  // 高并发场景
   createLowConcurrencyTaskQueue,   // 低并发稳定场景
   createDatabaseTaskQueue          // 数据库操作场景
-} from '@platform/sdk-core'
+} from '@wfynbzlx666/sdk-core'
 
 // 高并发队列 - 适合轻量级任务
 const highQueue = createHighConcurrencyTaskQueue({
@@ -142,7 +142,7 @@ queue.updateConfig({
 可配置的重试机制，支持多种退避策略。
 
 ```typescript
-import { withRetry, createRetry } from '@platform/sdk-core'
+import { withRetry, createRetry } from '@wfynbzlx666/sdk-core'
 
 // 直接使用重试包装函数
 const result = await withRetry(async () => {
@@ -174,20 +174,20 @@ const data = await retryFetch(async () => {
 基于 BroadcastChannel 的跨标签页通信机制。
 
 ```typescript
-import { createBroadcast } from '@platform/sdk-core'
+import { createBroadcast } from '@wfynbzlx666/sdk-core'
 
 const broadcast = createBroadcast('user-channel')
 
 // 监听消息
-broadcast.subscribe((message) => {
+broadcast.addEventListener((message) => {
   console.log('收到消息:', message)
 })
 
 // 发送消息
-broadcast.send({ type: 'user-login', userId: 123 })
+broadcast.postMessage('user-login', { userId: 123 })
 
 // 清理资源
-broadcast.destroy()
+broadcast.close()
 ```
 
 ### Locks - 互斥锁协调
@@ -195,7 +195,7 @@ broadcast.destroy()
 防止多标签页冲突的资源锁定机制。
 
 ```typescript
-import { withLock } from '@platform/sdk-core'
+import { withLock } from '@wfynbzlx666/sdk-core'
 
 // 使用互斥锁保护资源
 const result = await withLock('user-data-update', async () => {
@@ -218,7 +218,7 @@ import {
   isSupported,
   generateId,
   getCurrentTimestamp 
-} from '@platform/sdk-core'
+} from '@wfynbzlx666/sdk-core'
 
 // 异步延迟
 await sleep(1000)
@@ -329,6 +329,7 @@ interface TaskOptions {
   maxRetries?: number   // 最大重试次数
   timeout?: number      // 任务超时时间
   retryDelay?: number   // 重试延迟
+  [key: string]: any    // 自定义选项
 }
 ```
 

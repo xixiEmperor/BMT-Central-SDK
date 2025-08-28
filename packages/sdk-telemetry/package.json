@@ -1,5 +1,5 @@
 {
-  "name": "@platform/sdk-telemetry",
+  "name": "@wfynbzlx666/sdk-telemetry",
   "version": "0.0.0",
   "description": "BMT 平台 SDK 遥测上报 - 事件缓冲、批量上报、跨标签页去重",
   "type": "module",
@@ -35,9 +35,9 @@
     "directory": "packages/sdk-telemetry"
   },
   "dependencies": {
-    "@platform/sdk-core": "workspace:*",
+    "@wfynbzlx666/sdk-core": "workspace:*",
     "@wfynbzlx666/sdk-perf": "workspace:*",
-    "@platform/sdk-http": "workspace:*"
+    "@wfynbzlx666/sdk-http": "workspace:*"
   },
   "devDependencies": {
   }

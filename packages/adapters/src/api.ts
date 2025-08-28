@@ -3,7 +3,7 @@
  * 为常用后端API提供统一接口
  */
 
-import { initHttp, http, AuthAPI, HealthAPI, ConfigAPI } from '@platform/sdk-http'
+import { initHttp, http, AuthAPI, HealthAPI, ConfigAPI } from '@wfynbzlx666/sdk-http'
 
 // 全局API配置
 let apiConfig: {

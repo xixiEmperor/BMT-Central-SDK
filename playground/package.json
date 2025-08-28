@@ -10,12 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@platform/sdk-core": "workspace:*",
-    "@platform/sdk-http": "workspace:*",
+    "@wfynbzlx666/sdk-core": "workspace:*",
+    "@wfynbzlx666/sdk-http": "workspace:*",
     "@wfynbzlx666/sdk-perf": "workspace:*",
-    "@platform/sdk-telemetry": "workspace:*",
-    "@platform/sdk-realtime": "workspace:*",
-    "@platform/adapters": "workspace:*",
+    "@wfynbzlx666/sdk-telemetry": "workspace:*",
+    "@wfynbzlx666/sdk-realtime": "workspace:*",
+    "@wfynbzlx666/adapters": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

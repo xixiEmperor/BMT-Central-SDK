@@ -54,7 +54,7 @@ export function createGlobalErrorHandler(): (error: Error) => void {
     // 可以在这里集成遥测上报
     try {
       // 动态导入telemetry模块
-      import('@platform/sdk-telemetry').then(({ Telemetry }) => {
+      import('@wfynbzlx666/sdk-telemetry').then(({ Telemetry }) => {
         if (Telemetry.isInitialized()) {
           Telemetry.trackError(error.name, error.message, error.stack)
         }
@@ -80,7 +80,7 @@ export function createRouterPlugin(): unknown {
         router.beforeEach((to: any, from: any, next: any) => {
           // 页面浏览埋点
           try {
-            import('@platform/sdk-telemetry').then(({ Telemetry }) => {
+            import('@wfynbzlx666/sdk-telemetry').then(({ Telemetry }) => {
               if (Telemetry.isInitialized()) {
                 Telemetry.trackPageView(to.path, {
                   title: to.meta?.title || document.title,

@@ -1,69 +1,209 @@
 /**
- * 遥测主入口
- * 自动与后端API集成，用户使用时会自动上报到后端
+ * 遥测系统核心模块
+ * 
+ * 该模块是遥测SDK的主入口，提供完整的事件追踪和数据上报功能。
+ * 自动与后端API集成，支持批量上报、重试机制、采样控制等高级特性。
+ * 
+ * 核心功能：
+ * - 事件收集和本地存储
+ * - 自动批量上报到后端
+ * - 采样率控制，减少数据量
+ * - 重试机制，确保数据可靠性
+ * - 多种降级策略，提高稳定性
+ * - 与SDK管理器深度集成
+ * 
+ * 使用模式：
+ * 1. 初始化配置
+ * 2. 设置用户信息
+ * 3. 追踪各种事件
+ * 4. 自动或手动上报数据
  */
 
 import type { TelemetryEvent, TelemetryUser } from './types.js'
 import type { PerfMetric } from '@wfynbzlx666/sdk-perf'
 import { createTelemetryStorage, type TelemetryStorage } from './storage.js'
-import { generateId, sleep } from '@platform/sdk-core'
-import { TelemetryAPI } from '@platform/sdk-http'
-import { sdkManager } from '@platform/sdk-core'
+import { generateId, sleep } from '@wfynbzlx666/sdk-core'
+import { TelemetryAPI } from '@wfynbzlx666/sdk-http'
+import { sdkManager } from '@wfynbzlx666/sdk-core'
 
+/**
+ * 遥测配置选项接口
+ * 
+ * 定义了遥测系统的所有配置参数，包括基础信息、上报策略、
+ * 性能优化和调试选项等。
+ */
 export interface TelemetryOptions {
-  /** 应用名称 */
+  /** 
+   * 应用名称
+   * 用于标识事件来源的应用程序
+   */
   app: string
-  /** 版本号 */
+  
+  /** 
+   * 应用版本号
+   * 用于版本间的数据对比和问题定位
+   */
   release: string
-  /** 上报端点 */
+  
+  /** 
+   * 上报端点URL
+   * 可选，默认使用SDK配置中的遥测端点
+   */
   endpoint?: string
-  /** 采样率，默认 1.0 */
+  
+  /** 
+   * 采样率
+   * 0.0-1.0之间的数值，控制事件采样比例
+   * @default 1.0
+   */
   sampleRate?: number
-  /** 批量上报阈值，默认 50 */
+  
+  /** 
+   * 批量上报阈值
+   * 达到此数量时触发自动上报
+   * @default 50
+   */
   batchSize?: number
-  /** 上报间隔（毫秒），默认 5000 */
+  
+  /** 
+   * 上报间隔时间（毫秒）
+   * 定时上报的间隔时间
+   * @default 5000
+   */
   flushInterval?: number
-  /** 最大缓存数量，默认 1000 */
+  
+  /** 
+   * 最大缓存数量
+   * 本地存储的事件数量上限
+   * @default 1000
+   */
   maxCacheSize?: number
-  /** 是否启用跨标签页去重，默认 true */
+  
+  /** 
+   * 是否启用跨标签页去重
+   * 避免同一事件在多个标签页中重复上报
+   * @default true
+   */
   enableDedup?: boolean
-  /** 是否启用自动上报，默认 true */
+  
+  /** 
+   * 是否启用自动上报
+   * 控制是否自动定时上报数据
+   * @default true
+   */
   autoFlush?: boolean
-  /** 上报失败时的重试次数，默认 3 */
+  
+  /** 
+   * 上报失败时的重试次数
+   * 网络错误或服务器错误时的重试次数
+   * @default 3
+   */
   retryCount?: number
-  /** 调试模式，默认 false */
+  
+  /** 
+   * 调试模式
+   * 启用详细的控制台日志输出
+   * @default false
+   */
   debug?: boolean
 }
 
+// 重新导出核心类型
 export { type TelemetryEvent }
 
+/**
+ * 遥测系统核心类
+ * 
+ * 采用静态方法设计，确保全应用单例模式。提供完整的事件追踪、
+ * 存储和上报功能，与后端API深度集成。
+ * 
+ * 主要特性：
+ * - 多种事件类型支持（页面、自定义、错误、API、性能）
+ * - 智能批量上报和重试机制
+ * - 采样率控制和性能优化
+ * - 用户会话管理
+ * - 自动和手动上报模式
+ * - 完善的错误处理和降级策略
+ * 
+ * @example
+ * ```typescript
+ * // 初始化遥测系统
+ * Telemetry.init({
+ *   app: 'my-app',
+ *   release: '1.0.0',
+ *   sampleRate: 0.1,
+ *   debug: true
+ * });
+ * 
+ * // 设置用户信息
+ * Telemetry.setUser({
+ *   id: 'user123',
+ *   role: 'admin'
+ * });
+ * 
+ * // 追踪事件
+ * Telemetry.trackEvent('button_click', { buttonId: 'submit' });
+ * Telemetry.trackPageView('/dashboard');
+ * ```
+ */
 export class Telemetry {
+  // ============ 静态属性 ============
+  
+  /** 遥测配置选项 */
   private static options: TelemetryOptions | null = null
+  
+  /** 当前用户信息 */
   private static user: TelemetryUser | null = null
+  
+  /** 会话唯一标识符 */
   private static sessionId: string | null = null
+  
+  /** 本地存储实例 */
   private static storage: TelemetryStorage = createTelemetryStorage()
+  
+  /** 自动上报定时器 */
   private static flushTimer: any = null
 
+  // ============ 公共API方法 ============
+
   /**
-   * 初始化遥测
-   * 会自动从SDK配置中获取遥测设置
+   * 初始化遥测系统
+   * 
+   * 设置配置选项并启动遥测服务。会自动从SDK管理器获取
+   * 全局配置并与传入的选项合并。
+   * 
+   * @param {TelemetryOptions} options 遥测配置选项
+   * 
+   * @example
+   * ```typescript
+   * Telemetry.init({
+   *   app: 'my-application',
+   *   release: '2.1.0',
+   *   sampleRate: 0.8,
+   *   batchSize: 100,
+   *   autoFlush: true,
+   *   debug: process.env.NODE_ENV === 'development'
+   * });
+   * ```
    */
   static init(options: TelemetryOptions): void {
+    // 设置默认配置值
     this.options = {
-      sampleRate: 1.0,
-      batchSize: 50,
-      flushInterval: 5_000,
-      maxCacheSize: 1000,
-      enableDedup: true,
-      autoFlush: true,
-      retryCount: 3,
-      debug: false,
-      ...options,
+      sampleRate: 1.0,        // 默认100%采样
+      batchSize: 50,          // 默认批次大小50
+      flushInterval: 5_000,   // 默认5秒上报间隔
+      maxCacheSize: 1000,     // 默认最大缓存1000条
+      enableDedup: true,      // 默认启用去重
+      autoFlush: true,        // 默认自动上报
+      retryCount: 3,          // 默认重试3次
+      debug: false,           // 默认关闭调试
+      ...options,             // 用户配置覆盖默认值
     }
     
+    // 生成或保持会话ID
     this.sessionId = this.sessionId ?? generateId()
     
-    // 尝试从SDK管理器获取配置并覆盖默认设置
+    // 尝试从SDK管理器获取全局配置
     this.updateFromSDKConfig()
     
     // 启动自动上报定时器
@@ -71,48 +211,94 @@ export class Telemetry {
       this.startAutoFlush()
     }
     
+    // 调试模式下输出初始化信息
     if (this.options.debug) {
       console.log('Telemetry initialized with options:', this.options)
     }
   }
 
   /**
-   * 设置用户信息
+   * 设置当前用户信息
+   * 
+   * 设置或更新当前用户的信息，这些信息会被自动添加到
+   * 后续的所有遥测事件中，用于用户行为分析。
+   * 
+   * @param {TelemetryUser | null} user 用户信息对象，传入null清除用户信息
+   * 
+   * @example
+   * ```typescript
+   * // 设置用户信息
+   * Telemetry.setUser({
+   *   id: 'user_12345',
+   *   role: 'premium',
+   *   email: 'user@example.com',
+   *   plan: 'pro'
+   * });
+   * 
+   * // 清除用户信息（如用户登出）
+   * Telemetry.setUser(null);
+   * ```
    */
   static setUser(user: TelemetryUser | null): void {
     this.user = user
   }
 
   /**
-   * 跟踪页面浏览
+   * 追踪页面浏览事件
+   * 
+   * 记录用户访问页面的行为，自动获取页面URL、标题等信息。
+   * 
+   * @param {string} routeName 页面路由名称或标识
+   * @param {Record<string, any>} [props] 额外的页面相关属性
    */
   static trackPageView(routeName: string, props?: Record<string, any>): void {
     this.enqueue({ type: 'page', name: routeName, props })
   }
 
   /**
-   * 跟踪自定义事件
+   * 追踪自定义事件
+   * 
+   * 记录应用中的用户行为和业务事件。
+   * 
+   * @param {string} name 事件名称
+   * @param {Record<string, any>} [props] 事件相关属性
    */
   static trackEvent(name: string, props?: Record<string, any>): void {
     this.enqueue({ type: 'event', name, props })
   }
 
   /**
-   * 跟踪错误
+   * 追踪错误事件
+   * 
+   * 记录应用中发生的错误和异常。
+   * 
+   * @param {string} name 错误名称或类型
+   * @param {string} [message] 错误消息
+   * @param {string} [stack] 错误堆栈
    */
   static trackError(name: string, message?: string, stack?: string): void {
     this.enqueue({ type: 'error', name, props: { message, stack } })
   }
 
   /**
-   * 跟踪 API 调用
+   * 追踪API调用事件
+   * 
+   * 记录API调用的性能和状态信息。
+   * 
+   * @param {string} url API地址
+   * @param {number} status HTTP状态码
+   * @param {number} duration 耗时（毫秒）
    */
   static trackApi(url: string, status: number, duration: number): void {
     this.enqueue({ type: 'api', name: url, props: { status, duration } })
   }
 
   /**
-   * 跟踪性能指标
+   * 追踪性能指标
+   * 
+   * 记录应用性能指标，通常与sdk-perf模块集成使用。
+   * 
+   * @param {PerfMetric} metric 性能指标对象
    */
   static trackPerf(metric: PerfMetric): void {
     this.enqueue({ type: 'perf', name: metric.name, props: { value: metric.value, rating: metric.rating } })

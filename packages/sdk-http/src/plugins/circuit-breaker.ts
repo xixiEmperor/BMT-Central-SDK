@@ -42,13 +42,6 @@ export interface CircuitBreakerOptions {
    * - 50-60%：平衡的容错水平，适合大多数场景
    * - 30-40%：严格的容错，对稳定性要求高的系统
    * - 70-80%：宽松的容错，允许更多故障但减少误判
-   * 
-   * @example
-   * ```typescript
-   * failureThreshold: 50   // 失败率超过50%时熔断
-   * failureThreshold: 30   // 失败率超过30%时熔断（更敏感）
-   * failureThreshold: 70   // 失败率超过70%时熔断（更宽松）
-   * ```
    */
   failureThreshold?: number
   
@@ -71,11 +64,6 @@ export interface CircuitBreakerOptions {
    * - 太大：反应迟钝，可能错过真正的故障
    * - 建议：5-20，根据业务请求量调整
    * 
-   * @example
-   * ```typescript
-   * minimumRequests: 5   // 至少5个请求后才考虑熔断
-   * minimumRequests: 20  // 至少20个请求后才考虑熔断（更稳定）
-   * ```
    */
   minimumRequests?: number
   

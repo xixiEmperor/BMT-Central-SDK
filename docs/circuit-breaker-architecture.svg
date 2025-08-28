@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="14">
+  <defs>
+    <style>
+      .title { font-size: 24px; font-weight: 700; fill: #111; }
+      .section { font-size: 16px; font-weight: 600; fill: #222; }
+      .muted { fill: #555; }
+      .box { fill: #fff; stroke: #333; stroke-width: 1.2; rx: 6; }
+      .diamond { fill: #fff; stroke: #333; stroke-width: 1.2; }
+      .note { fill: #f6f8fa; stroke: #cfd8e3; rx: 6; }
+      .state { fill: #eef6ff; stroke: #84caff; rx: 6; }
+      .arrow { stroke: #333; stroke-width: 1.2; marker-end: url(#arrowhead); fill: none; }
+      .arrow-muted { stroke: #999; stroke-width: 1.2; marker-end: url(#arrowhead-muted); fill: none; stroke-dasharray: 6 4; }
+      .k { font-weight: 600; }
+      .y { fill: #8b5cf6; font-weight: 600; }
+      .ok { fill: #10b981; font-weight: 600; }
+      .warn { fill: #ef4444; font-weight: 600; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrowhead-muted" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#999"/>
+    </marker>
+  </defs>
+
+  <text x="600" y="40" text-anchor="middle" class="title">HTTP 熔断器插件（Circuit Breaker）流程图</text>
+  <text x="600" y="68" text-anchor="middle" class="muted">packages/sdk-http/src/plugins/circuit-breaker.ts</text>
+
+  <!-- 配置选项 -->
+  <rect x="40" y="90" width="360" height="150" class="note" />
+  <text x="60" y="120" class="section">配置（CircuitBreakerOptions）</text>
+  <text x="60" y="145" class="muted">• failureThreshold：失败率阈值（默认 50%）</text>
+  <text x="60" y="170" class="muted">• minimumRequests：最小请求数（默认 10）</text>
+  <text x="60" y="195" class="muted">• retryInterval：半开重试间隔（默认 30s）</text>
+  <text x="60" y="220" class="muted">• resetInterval：统计窗口重置（默认 60s）</text>
+
+  <!-- 状态展示 -->
+  <text x="930" y="120" class="section">状态机</text>
+  <rect x="840" y="140" width="110" height="44" class="state" />
+  <rect x="975" y="140" width="110" height="44" class="state" />
+  <rect x="908" y="200" width="110" height="44" class="state" />
+  <text x="895" y="168">closed</text>
+  <text x="1030" y="168">open</text>
+  <text x="928" y="228">half-open</text>
+  <line x1="950" y1="162" x2="975" y2="162" class="arrow" />
+  <line x1="1030" y1="162" x2="963" y2="222" class="arrow" />
+  <line x1="963" y1="222" x2="895" y2="162" class="arrow" />
+  <text x="962" y="130" text-anchor="middle" class="muted">基于失败率与时间窗转换</text>
+
+  <!-- onRequest 流程 -->
+  <text x="160" y="280" class="section">onRequest</text>
+  <rect x="80" y="300" width="180" height="40" class="box" />
+  <text x="90" y="325">进入请求</text>
+
+  <polygon class="diamond" points="190,370 250,400 190,430 130,400" />
+  <text x="190" y="397" text-anchor="middle">state == open?</text>
+
+  <polygon class="diamond" points="370,370 430,400 370,430 310,400" />
+  <text x="370" y="397" text-anchor="middle">now - lastOpenedAt</text>
+  <text x="370" y="415" text-anchor="middle">> retryInterval?</text>
+
+  <rect x="520" y="380" width="180" height="40" class="box" />
+  <text x="530" y="405">置为 half-open，放行探测</text>
+
+  <rect x="300" y="470" width="180" height="40" class="box" />
+  <text x="310" y="495">抛出 ServiceUnavailable</text>
+
+  <rect x="80" y="470" width="180" height="40" class="box" />
+  <text x="90" y="495">state != open，直接放行</text>
+
+  <line x1="170" y1="340" x2="170" y2="370" class="arrow" />
+  <line x1="210" y1="400" x2="310" y2="400" class="arrow" />
+  <line x1="130" y1="400" x2="80" y2="400" class="arrow" />
+  <line x1="430" y1="400" x2="520" y2="400" class="arrow" />
+  <line x1="350" y1="430" x2="350" y2="470" class="arrow" />
+
+  <!-- onResponse 流程 -->
+  <text x="160" y="560" class="section">onResponse</text>
+  <rect x="80" y="580" width="220" height="44" class="box" />
+  <text x="90" y="606">total++（统计总请求）</text>
+
+  <polygon class="diamond" points="350,590 420,620 350,650 280,620" />
+  <text x="350" y="616" text-anchor="middle">state == half-open?</text>
+
+  <rect x="460" y="600" width="260" height="44" class="box" />
+  <text x="470" y="626">成功则 state = closed，并 resetWindow()</text>
+
+  <line x1="300" y1="602" x2="280" y2="602" class="arrow" />
+  <line x1="420" y1="620" x2="460" y2="620" class="arrow" />
+
+  <!-- onError 流程 -->
+  <text x="160" y="700" class="section">onError</text>
+  <rect x="80" y="720" width="260" height="44" class="box" />
+  <text x="90" y="746">total++，failed++（失败计数）</text>
+
+  <polygon class="diamond" points="400,730 500,760 400,790 300,760" />
+  <text x="400" y="746" text-anchor="middle">total ≥ minimumRequests 且</text>
+  <text x="400" y="764" text-anchor="middle">失败率 ≥ failureThreshold 且</text>
+  <text x="400" y="782" text-anchor="middle">state != open ?</text>
+
+  <rect x="530" y="740" width="280" height="44" class="box" />
+  <text x="540" y="766">state = open，lastOpenedAt = now</text>
+
+  <rect x="860" y="740" width="190" height="44" class="box" />
+  <text x="870" y="766">抛出原始错误（不吞异常）</text>
+
+  <line x1="340" y1="742" x2="300" y2="742" class="arrow" />
+  <line x1="500" y1="760" x2="530" y2="760" class="arrow" />
+  <line x1="810" y1="762" x2="860" y2="762" class="arrow" />
+
+  <!-- 定时器/统计窗口 -->
+  <rect x="840" y="580" width="300" height="90" class="note" />
+  <text x="860" y="610" class="section">统计窗口与重置</text>
+  <text x="860" y="636" class="muted">setInterval(() => resetWindow(), resetInterval)</text>
+  <path d="M 840 625 C 820 610, 700 600, 610 620" class="arrow-muted" />
+  <text x="860" y="660" class="muted">清除旧统计，基于最近窗口判断熔断</text>
+
+  <!-- 关键信号 -->
+  <text x="60" y="860" class="muted">
+    关键信号：<tspan class="k">failed/total</tspan> → <tspan class="y">失败率%</tspan>；
+    半开成功 → <tspan class="ok">关闭</tspan>；阈值超限 → <tspan class="warn">开路</tspan>
+  </text>
+</svg>

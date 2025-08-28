@@ -29,7 +29,7 @@ export function createDefaultErrorHandler(options?: {
     if (enableTelemetry) {
       try {
         // 动态导入避免循环依赖
-        import('@platform/sdk-telemetry').then(({ Telemetry }) => {
+        import('@wfynbzlx666/sdk-telemetry').then(({ Telemetry }) => {
           if (Telemetry.isInitialized()) {
             Telemetry.trackError(error.name, error.message, error.stack)
           }

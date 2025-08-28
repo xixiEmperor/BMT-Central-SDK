@@ -43,7 +43,7 @@ export {
   ConfigAPI,
   HealthAPI,
   RealtimeAPI
-} from '@platform/sdk-http'
+} from '@wfynbzlx666/sdk-http'
 
 export type {
   // 通用类型
@@ -93,4 +93,4 @@ export type {
   SocketResponse,
   SocketClientEvents,
   SocketServerEvents
-} from '@platform/sdk-http'
+} from '@wfynbzlx666/sdk-http'

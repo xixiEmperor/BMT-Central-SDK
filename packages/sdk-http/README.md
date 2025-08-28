@@ -1,4 +1,4 @@
-# @platform/sdk-http
+# @wfynbzlx666/sdk-http
 
 BMT 平台 SDK HTTP 客户端模块，提供功能完整的 HTTP 客户端库，集成认证、遥测、配置管理、健康检查等完整的后端 API 接口。
 
@@ -16,7 +16,7 @@ BMT 平台 SDK HTTP 客户端模块，提供功能完整的 HTTP 客户端库，
 ## 📦 安装
 
 ```bash
-npm install @platform/sdk-http
+npm install @wfynbzlx666/sdk-http
 ```
 
 ## 🎯 核心模块
@@ -28,7 +28,7 @@ npm install @platform/sdk-http
 #### 🚀 快速开始
 
 ```typescript
-import { initHttp, http } from '@platform/sdk-http'
+import { initHttp, http } from '@wfynbzlx666/sdk-http'
 
 // 初始化 HTTP 客户端
 initHttp({
@@ -57,7 +57,7 @@ import {
   authPlugin, 
   retryPlugin, 
   rateLimitPlugin 
-} from '@platform/sdk-http'
+} from '@wfynbzlx666/sdk-http'
 
 // 完整配置示例
 initHttp({
@@ -102,7 +102,7 @@ const data = await http.get('/protected-endpoint')
 **1. 认证插件**
 
 ```typescript
-import { authPlugin } from '@platform/sdk-http'
+import { authPlugin } from '@wfynbzlx666/sdk-http'
 
 const authPluginInstance = authPlugin({
   tokenProvider: async () => {
@@ -122,7 +122,7 @@ const authPluginInstance = authPlugin({
 **2. 重试插件**
 
 ```typescript
-import { retryPlugin } from '@platform/sdk-http'
+import { retryPlugin } from '@wfynbzlx666/sdk-http'
 
 const retryPluginInstance = retryPlugin({
   retries: 3,
@@ -140,7 +140,7 @@ const retryPluginInstance = retryPlugin({
 **3. 去重插件**
 
 ```typescript
-import { dedupPlugin } from '@platform/sdk-http'
+import { dedupPlugin } from '@wfynbzlx666/sdk-http'
 
 const dedupPluginInstance = dedupPlugin({
   // 缓存时间（毫秒）
@@ -161,7 +161,7 @@ const dedupPluginInstance = dedupPlugin({
 **4. 熔断器插件**
 
 ```typescript
-import { circuitBreakerPlugin } from '@platform/sdk-http'
+import { circuitBreakerPlugin } from '@wfynbzlx666/sdk-http'
 
 const circuitBreakerPluginInstance = circuitBreakerPlugin({
   // 失败阈值
@@ -183,7 +183,7 @@ const circuitBreakerPluginInstance = circuitBreakerPlugin({
 **5. 遥测插件**
 
 ```typescript
-import { telemetryPlugin } from '@platform/sdk-http'
+import { telemetryPlugin } from '@wfynbzlx666/sdk-http'
 
 const telemetryPluginInstance = telemetryPlugin({
   // 是否收集详细的请求指标
@@ -206,29 +206,42 @@ const telemetryPluginInstance = telemetryPlugin({
 #### 🛠️ 自定义插件
 
 ```typescript
-import { HttpPlugin } from '@platform/sdk-http'
+import { HttpPlugin } from '@wfynbzlx666/sdk-http'
 
 // 创建自定义插件
 const customPlugin: HttpPlugin = {
   name: 'custom-plugin',
   
-  async beforeRequest(config) {
+  // 插件初始化钩子
+  async setup() {
+    console.log('插件初始化')
+    // 初始化外部资源、验证配置等
+  },
+  
+  async onRequest(config) {
     // 请求前处理
     console.log('发送请求:', config.url)
+    config.headers = config.headers || {}
     config.headers['X-Request-ID'] = generateRequestId()
     return config
   },
   
-  async afterResponse(response) {
+  async onResponse(response) {
     // 响应后处理
     console.log('收到响应:', response.status)
-    return response
+    return response.data
   },
   
   async onError(error) {
     // 错误处理
     console.error('请求失败:', error)
     throw error
+  },
+  
+  // 插件销毁钩子
+  async teardown() {
+    console.log('插件清理')
+    // 清理资源、关闭连接等
   }
 }
 
@@ -246,7 +259,7 @@ initHttp({
 #### 🔐 认证 API
 
 ```typescript
-import { BMTAPI, AuthManager } from '@platform/sdk-http'
+import { BMTAPI, AuthManager } from '@wfynbzlx666/sdk-http'
 
 // 方式1：直接使用 API
 const loginResult = await BMTAPI.auth.login({
@@ -271,6 +284,15 @@ if (authManager.isAuthenticated()) {
   authManager.startAutoRefresh()
 }
 
+// AuthManager 提供的完整方法：
+// - login(username, password): 用户登录
+// - logout(): 用户登出
+// - refresh(): 刷新令牌
+// - isAuthenticated(): 检查认证状态
+// - getCurrentUser(): 获取当前用户
+// - startAutoRefresh(): 启动自动刷新
+// - stopAutoRefresh(): 停止自动刷新
+
 // 验证令牌
 const verifyResult = await BMTAPI.auth.verify()
 if (verifyResult.success) {
@@ -284,7 +306,7 @@ await authManager.logout()
 #### 📊 遥测 API
 
 ```typescript
-import { BMTAPI, TelemetryBatcher } from '@platform/sdk-http'
+import { BMTAPI, TelemetryBatcher } from '@wfynbzlx666/sdk-http'
 
 // 方式1：直接上报事件
 await BMTAPI.telemetry.ingestEvents({
@@ -311,8 +333,9 @@ await BMTAPI.telemetry.ingestEvents({
 
 // 方式2：使用批次管理器（推荐）
 const telemetryBatcher = new TelemetryBatcher({
-  maxBatchSize: 50,
-  flushInterval: 5000,
+  maxBatchSize: 50,        // 最大批次大小
+  flushInterval: 5000,     // 定时刷新间隔(ms)
+  maxWaitTime: 10000,      // 最大等待时间(ms)
   onFlush: async (events) => {
     await BMTAPI.telemetry.ingestEvents({ events })
   }
@@ -328,6 +351,14 @@ telemetryBatcher.add({
   }
 })
 
+// TelemetryBatcher 提供的方法：
+// - add(event): 添加单个事件
+// - addBatch(events): 批量添加事件
+// - flush(): 手动刷新批次
+// - start(): 启动自动刷新
+// - stop(): 停止自动刷新
+// - clear(): 清空当前批次
+
 // 获取遥测统计
 const stats = await BMTAPI.telemetry.getStats()
 console.log('遥测统计:', stats.data)
@@ -336,7 +367,7 @@ console.log('遥测统计:', stats.data)
 #### ⚙️ 配置 API
 
 ```typescript
-import { BMTAPI } from '@platform/sdk-http'
+import { BMTAPI } from '@wfynbzlx666/sdk-http'
 
 // 获取 SDK 配置
 const config = await BMTAPI.config.getConfig('my-app', '1.0.0')
@@ -368,7 +399,7 @@ if (!validation.valid) {
 #### 🏥 健康检查 API
 
 ```typescript
-import { BMTAPI, HealthMonitor } from '@platform/sdk-http'
+import { BMTAPI, HealthMonitor } from '@wfynbzlx666/sdk-http'
 
 // 检查服务健康状态
 const health = await BMTAPI.health.check()
@@ -394,6 +425,10 @@ const healthMonitor = new HealthMonitor({
   
   onRecovered: (healthData) => {
     console.log('服务已恢复正常')
+  },
+  
+  onError: (error) => {
+    console.error('健康检查出错:', error)
   }
 })
 
@@ -402,12 +437,19 @@ healthMonitor.start()
 
 // 停止监控
 healthMonitor.stop()
+
+// HealthMonitor 提供的方法：
+// - start(): 启动健康监控
+// - stop(): 停止健康监控
+// - checkNow(): 立即执行一次健康检查
+// - getLastStatus(): 获取最后一次检查状态
+// - isRunning(): 检查监控是否运行中
 ```
 
 #### 🔄 实时通信 API
 
 ```typescript
-import { BMTAPI, ChannelPermissions } from '@platform/sdk-http'
+import { BMTAPI, ChannelPermissions } from '@wfynbzlx666/sdk-http'
 
 // 获取实时通信统计
 const realtimeStats = await BMTAPI.realtime.getStats()
@@ -447,7 +489,7 @@ import {
   authPlugin, 
   retryPlugin, 
   telemetryPlugin 
-} from '@platform/sdk-http'
+} from '@wfynbzlx666/sdk-http'
 
 // 初始化 HTTP 客户端
 initHttp({
@@ -516,7 +558,7 @@ import {
   http, 
   retryPlugin, 
   circuitBreakerPlugin 
-} from '@platform/sdk-http'
+} from '@wfynbzlx666/sdk-http'
 
 // 服务端配置
 initHttp({
@@ -554,7 +596,7 @@ export async function callInternalService(endpoint: string, data: any) {
 
 ```typescript
 // services/authService.ts
-import { BMTAPI, AuthManager } from '@platform/sdk-http'
+import { BMTAPI, AuthManager } from '@wfynbzlx666/sdk-http'
 
 class AuthService {
   private authManager: AuthManager
@@ -587,7 +629,7 @@ class AuthService {
 }
 
 // services/telemetryService.ts
-import { TelemetryBatcher } from '@platform/sdk-http'
+import { TelemetryBatcher } from '@wfynbzlx666/sdk-http'
 
 class TelemetryService {
   private batcher: TelemetryBatcher
@@ -695,9 +737,11 @@ interface HttpError extends Error {
 // 插件接口
 interface HttpPlugin {
   name: string
-  beforeRequest?(config: HttpRequestConfig): HttpRequestConfig | Promise<HttpRequestConfig>
-  afterResponse?(response: HttpResponse): HttpResponse | Promise<HttpResponse>
-  onError?(error: HttpError): never | Promise<never>
+  onRequest?(config: AxiosRequestConfig): AxiosRequestConfig | Promise<AxiosRequestConfig>
+  onResponse?<T = any>(response: AxiosResponse<T>): T | Promise<T>
+  onError?(error: any): never | Promise<never>
+  setup?(): void | Promise<void>
+  teardown?(): void | Promise<void>
 }
 ```
 

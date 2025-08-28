@@ -31,15 +31,6 @@ export interface AuthPluginOptions {
    * - 支持异步获取（如从存储中读取）
    * - 每次请求前都会调用此函数
    * 
-   * @example
-   * ```typescript
-   * getToken: () => localStorage.getItem('access_token')
-   * // 或异步获取
-   * getToken: async () => {
-   *   const token = await tokenManager.getCurrentToken();
-   *   return token?.isValid() ? token.value : null;
-   * }
-   * ```
    */
   getToken?: () => string | null | Promise<string | null>
   
@@ -58,15 +49,6 @@ export interface AuthPluginOptions {
    * 
    * 当收到401状态码时会触发此回调
    * 可用于通知用户重新登录、清除本地Token等
-   * 
-   * @example
-   * ```typescript
-   * onTokenExpired: async () => {
-   *   console.log('Token已过期，请重新登录');
-   *   localStorage.removeItem('access_token');
-   *   window.location.href = '/login';
-   * }
-   * ```
    */
   onTokenExpired?: () => void | Promise<void>
   
@@ -74,12 +56,6 @@ export interface AuthPluginOptions {
    * Token所在的HTTP头名称，默认 'Authorization'
    * 
    * 大多数API使用标准的Authorization头，但某些API可能使用自定义头名
-   * 
-   * @example
-   * ```typescript
-   * tokenHeader: 'X-API-Key'        // 自定义API密钥头
-   * tokenHeader: 'X-Access-Token'   // 自定义访问Token头
-   * ```
    */
   tokenHeader?: string
   
@@ -89,12 +65,6 @@ export interface AuthPluginOptions {
    * 用于构造完整的认证头值：`${tokenPrefix}${token}`
    * 注意Bearer后面有一个空格
    * 
-   * @example
-   * ```typescript
-   * tokenPrefix: 'Bearer '    // 标准Bearer Token格式
-   * tokenPrefix: 'Token '     // 简单Token格式  
-   * tokenPrefix: ''           // 无前缀，直接使用Token值
-   * ```
    */
   tokenPrefix?: string
 }
@@ -106,36 +76,6 @@ export interface AuthPluginOptions {
  * 
  * @param options 认证插件配置选项
  * @returns HttpPlugin 认证插件实例
- * 
- * @example
- * ```typescript
- * // 基本使用 - Bearer Token认证
- * const auth = authPlugin({
- *   getToken: () => localStorage.getItem('access_token'),
- *   onTokenExpired: () => {
- *     console.log('Token过期，请重新登录');
- *     window.location.href = '/login';
- *   }
- * });
- * 
- * // 自定义认证头格式
- * const apiKeyAuth = authPlugin({
- *   getToken: () => process.env.API_KEY,
- *   tokenHeader: 'X-API-Key',
- *   tokenPrefix: ''  // 无前缀
- * });
- * 
- * // 异步Token获取
- * const asyncAuth = authPlugin({
- *   getToken: async () => {
- *     const refreshToken = localStorage.getItem('refresh_token');
- *     if (!refreshToken) return null;
- *     
- *     const newToken = await refreshAccessToken(refreshToken);
- *     return newToken;
- *   }
- * });
- * ```
  */
 export function authPlugin(options: AuthPluginOptions = {}): HttpPlugin {
   // 解构配置选项并设置默认值
