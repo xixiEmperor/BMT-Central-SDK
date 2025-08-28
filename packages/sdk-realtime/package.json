@@ -1,5 +1,5 @@
 {
-  "name": "@platform/sdk-realtime",
+  "name": "@wfynbzlx666/sdk-realtime",
   "version": "0.0.0",
   "description": "BMT 平台 SDK 实时通信 - Socket.IO 可靠通道、心跳重连、ack 机制",
   "type": "module",
@@ -31,12 +31,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/bmt-central-sdk.git",
+    "url": "https://github.com/xixiEmperor/BMT-Central-SDK.git",
     "directory": "packages/sdk-realtime"
   },
   "dependencies": {
-    "@platform/sdk-core": "workspace:*",
-    "@platform/sdk-http": "workspace:*",
+    "@wfynbzlx666/sdk-core": "0.0.1",
+    "@wfynbzlx666/sdk-http": "0.0.2",
     "socket.io-client": "^4.7.4"
   },
   "devDependencies": {
