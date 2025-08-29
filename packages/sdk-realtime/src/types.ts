@@ -15,12 +15,12 @@
  * 
  * @type {MessageType}
  * - 'event': 事件消息，用于传递业务数据
- * - 'ack': 确认消息，用于消息送达确认
+
  * - 'error': 错误消息，用于传递错误信息
  * - 'subscribe': 订阅消息，用于订阅特定主题
  * - 'publish': 发布消息，用于向主题发布内容
  */
-export type MessageType = 'event' | 'ack' | 'error' | 'subscribe' | 'publish'
+export type MessageType = 'event' | 'error' | 'subscribe' | 'publish'
 
 /**
  * 连接状态枚举
@@ -80,24 +80,6 @@ export interface EventMessage<T = unknown> extends RealtimeMessage<T> {
   payload: T
 }
 
-/**
- * 确认消息接口
- * 
- * 用于确认某个消息已被成功接收和处理。ACK消息通过消息ID
- * 来关联原始消息，可以包含处理结果的状态码和描述信息。
- * 
- * @extends RealtimeMessage
- */
-export interface AckMessage extends RealtimeMessage {
-  /** 固定为'ack'，标识这是一个确认消息 */
-  type: 'ack'
-  /** 必须指定原始消息的ID，用于消息关联 */
-  id: string
-  /** 可选的状态码，表示处理结果 */
-  code?: string
-  /** 可选的描述信息，提供处理详情 */
-  message?: string
-}
 
 /**
  * 错误消息接口

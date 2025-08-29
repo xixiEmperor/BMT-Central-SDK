@@ -21,7 +21,7 @@ import type {
   ConnectionListener, 
   Subscription 
 } from './types.js'
-import type { RealtimeMessage, EventMessage, AckMessage } from './types.js'
+import type { RealtimeMessage, EventMessage } from './types.js'
 import { io, Socket } from 'socket.io-client'
 import { generateId, sleep } from '@wfynbzlx666/sdk-core'
 import { RealtimeAPI, ChannelPermissions } from '@wfynbzlx666/sdk-http'
@@ -45,6 +45,14 @@ export interface RealtimeOptions {
    * @returns {string | null | Promise<string | null>} 认证令牌或null
    */
   auth?: () => string | null | Promise<string | null>
+
+  /**
+   * 用户信息
+   */
+  user: {
+    userId: string | number,
+    user_role: string
+  }
   
   /** 
    * 心跳间隔时间（毫秒）
@@ -86,19 +94,6 @@ export interface RealtimeOptions {
     capMs?: number
   }
   
-  /** 
-   * ACK确认超时时间（毫秒）
-   * 发送消息后等待服务器确认的最长时间
-   * @default 5000 
-   */
-  ackTimeout?: number
-  
-  /** 
-   * 消息最大重发次数
-   * 当ACK超时时，消息的最大重试发送次数
-   * @default 3 
-   */
-  maxRetries?: number
   
   /** 
    * 消息队列最大长度
@@ -165,18 +160,6 @@ export class Realtime {
   // 相当于一个池子，每个主题对应一个池子，池子里面存储了所有订阅了这个主题的回调函数
   private static topicListeners = new Map<string, Set<MessageListener<any>>>()
   
-  /** 
-   * 待确认消息映射表
-   * 存储等待ACK确认的消息信息，包括Promise控制函数、重试次数等
-   */
-  private static pendingAcks = new Map<string, {
-    resolve: () => void      // Promise resolve函数
-    reject: (e: any) => void // Promise reject函数  
-    attempts: number         // 当前重试次数
-    timeoutHandle: any      // 超时定时器
-    topic: string           // 消息主题
-    payload: any           // 消息载荷
-  }>()
   
   /** 离线消息队列，在连接断开时缓存待发送的消息 */
   private static outboundQueue: Array<EventMessage<any>> = []
@@ -218,8 +201,6 @@ export class Realtime {
     // 设置默认配置值
     const merged: Partial<RealtimeOptions> = {
       heartbeatInterval: 30_000,  // 30秒心跳间隔
-      ackTimeout: 5_000,          // 5秒ACK超时
-      maxRetries: 3,              // 最多重试3次
       maxQueueSize: 1000,         // 队列最大1000条消息
       reconnect: { 
         enabled: true,            // 启用自动重连
@@ -242,7 +223,6 @@ export class Realtime {
     
     // 重置内部状态，确保init的幂等性
     this.outboundQueue.length = 0    // 清空消息队列
-    this.pendingAcks.clear()         // 清空待确认消息
     this.topicListeners.clear()      // 清空主题监听器
     this.reconnectCount = 0          // 重置重连计数
 
@@ -378,18 +358,7 @@ export class Realtime {
         this.dispatchMessage(msg)
       })
 
-      /**
-       * 接收ACK确认消息
-       * 完成对应的Promise并清理资源
-       */
-      s.on('ack', (ack: AckMessage) => {
-        const pending = this.pendingAcks.get(ack.id)
-        if (!pending) return
-        
-        clearTimeout(pending.timeoutHandle)
-        this.pendingAcks.delete(ack.id)
-        pending.resolve()
-      })
+
 
       /**
        * 心跳确认事件
@@ -478,7 +447,7 @@ export class Realtime {
     return {
       /**
        * 取消订阅
-       * 移除监听器，如果是该主题的最后一个监听器则清理主题记录
+       * 移除该主题中set池里对应的监听器，如果是该主题的最后一个监听器则清理主题记录
        */
       unsubscribe: () => {
         const s = this.topicListeners.get(topic)
@@ -494,12 +463,12 @@ export class Realtime {
       },
       
       /**
-       * 获取订阅的主题名称
+       * 获取订阅的主题名称：直接返回主题名称
        */
       getTopic: () => topic,
       
       /**
-       * 检查订阅是否仍然有效
+       * 检查订阅是否仍然有效：直接看看有没有这个主题
        */
       isActive: () => this.topicListeners.has(topic),
     }
@@ -555,7 +524,7 @@ export class Realtime {
   }
 
   /**
-   * 监听连接状态变化
+   * 监听连接状态变化：向集合中添加回调函数，这样emitConnection时会调用所有回调函数
    * 
    * 注册连接状态变化监听器，当连接状态发生变化时会调用监听器函数。
    * 注册时会立即调用一次监听器以同步当前状态。
@@ -806,59 +775,9 @@ export class Realtime {
   // ============ 私有方法 ============
   // 以下是内部实现方法，不对外暴露
   
-  /**
-   * 发送消息（无ACK确认）
-   * 内部方法，用于发送不需要确认的消息
-   */
-  private static async send(message: RealtimeMessage<any>): Promise<void> {
-    if (!this.socket || this.status !== 'connected') {
-      // 未连接时将消息加入队列，受maxQueueSize约束
-      if (this.outboundQueue.length >= (this.options?.maxQueueSize ?? 1000)) {
-        // 队列满时丢弃最旧消息，保证最新消息有机会发送
-        this.outboundQueue.shift()
-      }
-      if (message.type === 'event') this.outboundQueue.push(message as EventMessage<any>)
-      return
-    }
-    
-    // 通过Socket发送消息
-    this.socket.emit(message.type, message)
-  }
-
-  // 内部：发送并等待 ACK，失败重试
-  private static async sendWithAck(message: EventMessage<any>): Promise<void> {
-    const ackTimeout = this.options?.ackTimeout ?? 5000
-    const maxRetries = this.options?.maxRetries ?? 3
-
-    let attempt = 0
-    while (true) {
-      attempt++
-      await this.send(message)
-      const result = await new Promise<'ok' | 'timeout'>((resolve) => {
-        const timeoutHandle = setTimeout(() => {
-          this.pendingAcks.delete(message.id!)
-          resolve('timeout')
-        }, ackTimeout)
-        this.pendingAcks.set(message.id!, {
-          resolve: () => resolve('ok'),
-          reject: () => resolve('timeout'),
-          attempts: attempt,
-          timeoutHandle,
-          topic: message.topic,
-          payload: message.payload,
-        })
-      })
-      if (result === 'ok') return
-      if (attempt >= maxRetries) throw new Error('ACK timeout')
-      // 退避后重发
-      const base = this.options?.reconnect?.baseMs ?? 1000
-      const cap = this.options?.reconnect?.capMs ?? 30_000
-      const delay = Math.min(base * Math.pow(2, attempt - 1), cap)
-      await sleep(delay)
-    }
-  }
-
   // 内部：派发消息到订阅者
+  // 会根据消息的主题，把消息传递给订阅了该主题的客户端
+  // 所以只要订阅了主题，就可以收到消息，并且可以根据服务端发来的消息进行一些操作
   private static dispatchMessage<T = any>(msg: EventMessage<T>): void {
     const set = this.topicListeners.get(msg.topic)
     if (!set || set.size === 0) return
@@ -927,8 +846,10 @@ export class Realtime {
   }
 
   // 内部：通知连接状态变化
+  // 简单理解为所有客户端都会调用自己传入的监听器，可能就是打印一个连接状态
   private static emitConnection(error?: Error): void {
     for (const l of this.connectionListeners) {
+      // 这里会把status传递给客户端，供其根据status进行处理
       try { l(this.status, error) } catch { /* 忽略监听器错误 */ }
     }
   }
@@ -956,6 +877,4 @@ export class Realtime {
       this.heartbeatTimer = null
     }
   }
-
-
 }

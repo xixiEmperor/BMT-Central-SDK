@@ -1,6 +1,6 @@
 {
   "name": "@wfynbzlx666/sdk-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "BMT 平台 SDK 核心能力 - TaskQueue、重试退避、跨标签页协调",
   "type": "module",
   "main": "./dist/index.js",

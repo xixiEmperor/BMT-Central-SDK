@@ -1,6 +1,6 @@
 {
   "name": "@wfynbzlx666/sdk-perf",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "BMT 平台 SDK 性能监控 - Web Vitals、PerformanceObserver、User Timing",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,11 +23,11 @@
     "clean": "rm -rf dist"
   },
   "keywords": ["performance", "web-vitals", "observer", "metrics", "platform"],
-  "author": "wfy666zlx666",
+  "author": "wfynbzlx666",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
-    "registry": "https://github.com/xixiEmperor/BMT-Central-SDK.git"
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "type": "git",
