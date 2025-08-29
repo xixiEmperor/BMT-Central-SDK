@@ -1,5 +1,5 @@
 /**
- * @platform/adapters
+ * @wfynbzlx666/adapters
  * BMT 平台 SDK 框架适配器
  * 
  * 提供：

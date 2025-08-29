@@ -27,7 +27,7 @@
  */
 
 import type { HttpPlugin } from './types.js'
-import type { RetryOptions } from '@platform/sdk-core'
+import type { RetryOptions } from '@wfynbzlx666/sdk-core'
 
 /**
  * HTTP重试插件配置选项接口

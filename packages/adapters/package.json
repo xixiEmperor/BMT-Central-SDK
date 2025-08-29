@@ -44,7 +44,6 @@
   },
   "dependencies": {
     "@wfynbzlx666/sdk-http": "workspace:*",
-    "@wfynbzlx666/sdk-core": "workspace:*",
     "@wfynbzlx666/sdk-telemetry": "workspace:*"
   },
   "peerDependencies": {

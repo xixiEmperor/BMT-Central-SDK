@@ -6,12 +6,12 @@
 
 | 包名 | 描述 | 版本 | 状态 |
 |------|------|------|------|
-| [@platform/sdk-core](./packages/sdk-core) | 核心能力 - TaskQueue、重试退避、跨标签页协调 | ![npm](https://img.shields.io/npm/v/@platform/sdk-core) | 🚧 开发中 |
-| [@platform/sdk-http](./packages/sdk-http) | HTTP 客户端 - Axios 单例、插件链、统一错误处理 | ![npm](https://img.shields.io/npm/v/@platform/sdk-http) | 🚧 开发中 |
-| [@platform/sdk-perf](./packages/sdk-perf) | 性能监控 - Web Vitals、PerformanceObserver | ![npm](https://img.shields.io/npm/v/@platform/sdk-perf) | 🚧 开发中 |
-| [@platform/sdk-telemetry](./packages/sdk-telemetry) | 遥测上报 - 事件缓冲、批量上报、跨标签页去重 | ![npm](https://img.shields.io/npm/v/@platform/sdk-telemetry) | 🚧 开发中 |
-| [@platform/sdk-realtime](./packages/sdk-realtime) | 实时通信 - Socket.IO 可靠通道、心跳重连 | ![npm](https://img.shields.io/npm/v/@platform/sdk-realtime) | 🚧 开发中 |
-| [@platform/adapters](./packages/adapters) | 框架适配 - React/Vue Query 默认项 | ![npm](https://img.shields.io/npm/v/@platform/adapters) | 🚧 开发中 |
+| [@wfynbzlx666/sdk-core](./packages/sdk-core) | 核心能力 - TaskQueue、重试退避、跨标签页协调 | ![npm](https://img.shields.io/npm/v/@wfynbzlx666/sdk-core) | ✅ 已发布 |
+| [@wfynbzlx666/sdk-http](./packages/sdk-http) | HTTP 客户端 - Axios 单例、插件链、统一错误处理 | ![npm](https://img.shields.io/npm/v/@wfynbzlx666/sdk-http) | ✅ 已发布 |
+| [@wfynbzlx666/sdk-perf](./packages/sdk-perf) | 性能监控 - Web Vitals、PerformanceObserver | ![npm](https://img.shields.io/npm/v/@wfynbzlx666/sdk-perf) | ✅ 已发布 |
+| [@wfynbzlx666/sdk-telemetry](./packages/sdk-telemetry) | 遥测上报 - 事件缓冲、批量上报、跨标签页去重 | ![npm](https://img.shields.io/npm/v/@wfynbzlx666/sdk-telemetry) | 🚧 开发中 |
+| [@wfynbzlx666/sdk-realtime](./packages/sdk-realtime) | 实时通信 - Socket.IO 可靠通道、心跳重连 | ![npm](https://img.shields.io/npm/v/@wfynbzlx666/sdk-realtime) | 🚧 开发中 |
+| [@wfynbzlx666/adapters](./packages/adapters) | 框架适配 - React/Vue Query 默认项 | ![npm](https://img.shields.io/npm/v/@wfynbzlx666/adapters) | 🚧 开发中 |
 
 ## 🚀 快速开始
 
@@ -19,19 +19,19 @@
 
 ```bash
 # 使用 pnpm (推荐)
-pnpm add @platform/sdk-core @platform/sdk-http
+pnpm add @wfynbzlx666/sdk-core @wfynbzlx666/sdk-http
 
 # 或使用 npm
-npm install @platform/sdk-core @platform/sdk-http
+npm install @wfynbzlx666/sdk-core @wfynbzlx666/sdk-http
 ```
 
 ### 基础用法
 
 ```typescript
-import { initHttp } from '@platform/sdk-http'
-import { Perf } from '@platform/sdk-perf'
-import { Telemetry } from '@platform/sdk-telemetry'
-import { Realtime } from '@platform/sdk-realtime'
+import { initHttp } from '@wfynbzlx666/sdk-http'
+import { Perf } from '@wfynbzlx666/sdk-perf'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 // 初始化 HTTP 客户端
 initHttp({ 

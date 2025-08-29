@@ -1,5 +1,5 @@
 /**
- * @platform/sdk-http
+ * @wfynbzlx666/sdk-http
  * BMT 平台 SDK HTTP 客户端模块
  * 
  * 这是一个功能完整的 HTTP 客户端库，专为 BMT 平台设计
@@ -15,7 +15,7 @@
  * 
  * 📦 使用方式：
  * ```typescript
- * import { initHttp, http } from '@platform/sdk-http'
+ * import { initHttp, http } from '@wfynbzlx666/sdk-http'
  * 
  * // 初始化客户端
  * initHttp({

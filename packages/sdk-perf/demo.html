@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能监控面板示例</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .demo-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        
+        .demo-description {
+            font-size: 18px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        
+        .demo-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+        
+        .controls-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .control-btn:hover {
+            background: #2563eb;
+        }
+        
+        .control-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .status-indicator {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-running {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-stopped {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        #dashboard-container {
+            width: 100%;
+            min-height: 600px;
+        }
+        
+        .demo-info {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        
+        .demo-info h3 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        
+        .demo-info ul {
+            margin-bottom: 0;
+        }
+        
+        .demo-info li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">🚀 性能监控面板示例</h1>
+            <p class="demo-description">
+                这是一个完整的性能监控可视化面板示例，展示了如何使用 @wfynbzlx666/sdk-perf 
+                进行实时性能监控、数据可视化和智能建议生成。
+            </p>
+        </div>
+        
+        <div class="demo-controls">
+            <h3 class="controls-title">控制面板</h3>
+            <div class="control-group">
+                <button id="start-monitoring" class="control-btn">开始监控</button>
+                <button id="stop-monitoring" class="control-btn" disabled>停止监控</button>
+                <button id="simulate-data" class="control-btn">模拟数据</button>
+                <button id="clear-data" class="control-btn">清除数据</button>
+                <button id="export-json" class="control-btn">导出 JSON</button>
+                <button id="export-csv" class="control-btn">导出 CSV</button>
+                <span id="status" class="status-indicator status-stopped">已停止</span>
+            </div>
+        </div>
+        
+        <div id="dashboard-container"></div>
+        
+        <div class="demo-info">
+            <h3>💡 使用说明</h3>
+            <ul>
+                <li><strong>开始监控</strong>：启动真实的性能监控，收集 Web Vitals 和其他性能指标</li>
+                <li><strong>模拟数据</strong>：生成模拟的性能数据，用于演示面板功能</li>
+                <li><strong>智能建议</strong>：基于收集的数据自动生成性能优化建议</li>
+                <li><strong>实时图表</strong>：支持折线图、柱状图、仪表盘等多种图表类型</li>
+                <li><strong>数据导出</strong>：支持导出 JSON 和 CSV 格式的性能数据</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 模拟 SDK 加载 -->
+    <script>
+        // 模拟 SDK 类和功能（实际使用时应该 import 真实的 SDK）
+        class MockPerf {
+            static metrics = []
+            static observers = []
+            static options = {}
+            
+            static init(options) {
+                this.options = options
+                console.log('Mock Perf initialized with options:', options)
+                
+                // 模拟自动收集 Web Vitals
+                if (options.autoEnableWebVitals !== false) {
+                    this.simulateWebVitals()
+                }
+            }
+            
+            static simulateWebVitals() {
+                setTimeout(() => {
+                    // 模拟 LCP
+                    this.generateMetric('vitals', 'LCP', this.randomValue(1000, 4000), 'ms')
+                    
+                    // 模拟 FID
+                    this.generateMetric('vitals', 'FID', this.randomValue(50, 300), 'ms')
+                    
+                    // 模拟 CLS
+                    this.generateMetric('vitals', 'CLS', this.randomValue(0.05, 0.3), 'score')
+                    
+                    // 模拟 FCP
+                    this.generateMetric('vitals', 'FCP', this.randomValue(800, 3000), 'ms')
+                    
+                    // 模拟 TTFB
+                    this.generateMetric('vitals', 'TTFB', this.randomValue(200, 1500), 'ms')
+                }, 1000)
+            }
+            
+            static generateMetric(type, name, value, unit) {
+                const rating = this.getRating(name, value)
+                const metric = {
+                    type,
+                    name,
+                    value,
+                    unit,
+                    rating,
+                    ts: Date.now(),
+                    source: 'mock'
+                }
+                
+                this.metrics.push(metric)
+                if (this.options.onMetric) {
+                    this.options.onMetric(metric)
+                }
+            }
+            
+            static getRating(name, value) {
+                const thresholds = {
+                    'LCP': { good: 2500, poor: 4000 },
+                    'FID': { good: 100, poor: 300 },
+                    'CLS': { good: 0.1, poor: 0.25 },
+                    'FCP': { good: 1800, poor: 3000 },
+                    'TTFB': { good: 800, poor: 1800 }
+                }
+                
+                const threshold = thresholds[name]
+                if (!threshold) return 'good'
+                
+                if (value <= threshold.good) return 'good'
+                if (value <= threshold.poor) return 'needs-improvement'
+                return 'poor'
+            }
+            
+            static randomValue(min, max) {
+                return Math.random() * (max - min) + min
+            }
+            
+            static stop() {
+                console.log('Mock Perf stopped')
+                this.observers = []
+            }
+            
+            static mark(name) {
+                console.log('Mock mark:', name)
+            }
+            
+            static measure(name, start, end) {
+                const value = Math.random() * 100
+                this.generateMetric('measure', name, value, 'ms')
+            }
+        }
+
+        // 模拟 PerformanceAdvisor
+        class MockPerformanceAdvisor {
+            constructor() {
+                this.metrics = []
+            }
+            
+            addMetric(metric) {
+                this.metrics.push(metric)
+            }
+            
+            generateAnalysis() {
+                const vitalsMetrics = this.metrics.filter(m => m.type === 'vitals')
+                const poorMetrics = vitalsMetrics.filter(m => m.rating === 'poor')
+                const goodMetrics = vitalsMetrics.filter(m => m.rating === 'good')
+                
+                const score = Math.max(0, 100 - (poorMetrics.length * 20))
+                const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F'
+                
+                const advices = []
+                
+                if (poorMetrics.length > 0) {
+                    advices.push({
+                        id: 'vitals-poor',
+                        type: 'error',
+                        priority: 'critical',
+                        category: 'performance',
+                        title: '核心性能指标需要优化',
+                        description: `发现 ${poorMetrics.length} 个性能指标表现较差`,
+                        suggestions: [
+                            '优化图片加载和格式选择',
+                            '减少JavaScript执行时间',
+                            '改善页面布局稳定性',
+                            '优化服务器响应时间'
+                        ],
+                        relatedMetrics: poorMetrics.map(m => m.name),
+                        expectedImprovement: '可提升整体性能评分 20-40%',
+                        difficulty: 'medium',
+                        timestamp: Date.now()
+                    })
+                }
+                
+                return {
+                    overallScore: score,
+                    grade,
+                    criticalIssues: poorMetrics.length,
+                    advices,
+                    summary: {
+                        strengths: goodMetrics.length > 0 ? [`${goodMetrics.length} 个指标表现良好`] : [],
+                        weaknesses: poorMetrics.length > 0 ? [`${poorMetrics.length} 个指标需要改进`] : [],
+                        quickWins: ['启用图片压缩', '优化CSS加载顺序']
+                    },
+                    timestamp: Date.now()
+                }
+            }
+        }
+
+        // 模拟 PerformanceDashboard
+        class MockPerformanceDashboard {
+            constructor(options) {
+                this.container = options.container
+                this.options = options
+                this.advisor = new MockPerformanceAdvisor()
+                this.charts = new Map()
+                this.isInitialized = false
+            }
+            
+            init() {
+                if (this.isInitialized) return
+                
+                this.container.innerHTML = `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">性能监控面板</h1>
+                            <div style="display: flex; gap: 12px;">
+                                <button onclick="window.exportData('json')" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer;">导出 JSON</button>
+                                <button onclick="window.exportData('csv')" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer;">导出 CSV</button>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+                            <div id="charts-area" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                                <div style="text-align: center; color: #6b7280; padding: 40px;">正在加载性能数据...</div>
+                            </div>
+                            
+                            <div id="advice-area" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                                <h3 style="margin-top: 0;">🎯 性能建议</h3>
+                                <div style="text-align: center; color: #6b7280; padding: 20px;">正在分析性能数据...</div>
+                            </div>
+                        </div>
+                    </div>
+                `
+                
+                this.isInitialized = true
+            }
+            
+            addMetric(metric) {
+                this.advisor.addMetric(metric)
+                this.updateChart(metric)
+                this.updateAdvice()
+            }
+            
+            updateChart(metric) {
+                const chartsArea = this.container.querySelector('#charts-area')
+                const chartId = `chart-${metric.type}-${metric.name}`
+                
+                let chartElement = this.container.querySelector(`#${chartId}`)
+                if (!chartElement) {
+                    // 移除加载提示
+                    const loading = chartsArea.querySelector('div')
+                    if (loading && loading.textContent.includes('正在加载')) {
+                        loading.remove()
+                    }
+                    
+                    chartElement = document.createElement('div')
+                    chartElement.id = chartId
+                    chartElement.style.cssText = 'background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;'
+                    chartsArea.appendChild(chartElement)
+                }
+                
+                const displayName = this.getDisplayName(metric.name)
+                const color = this.getColorByRating(metric.rating)
+                
+                chartElement.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="margin: 0; font-size: 16px; font-weight: 600;">${displayName}</h4>
+                        <span style="font-size: 12px; color: #6b7280;">${metric.value.toFixed(1)} ${metric.unit || ''}</span>
+                    </div>
+                    <div style="height: 100px; background: #f9fafb; border-radius: 4px; display: flex; align-items: end; padding: 10px;">
+                        <div style="width: 100%; height: ${Math.min(80, (metric.value / 100) * 80)}px; background: ${color}; border-radius: 2px; margin-right: 4px;"></div>
+                    </div>
+                    <div style="margin-top: 8px; text-align: center;">
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; background: ${color}20; color: ${color};">
+                            ${metric.rating || 'N/A'}
+                        </span>
+                    </div>
+                `
+            }
+            
+            updateAdvice() {
+                const analysis = this.advisor.generateAnalysis()
+                const adviceArea = this.container.querySelector('#advice-area')
+                
+                if (analysis.advices.length === 0) {
+                    adviceArea.innerHTML = `
+                        <h3 style="margin-top: 0;">🎯 性能建议</h3>
+                        <div style="text-align: center; color: #6b7280;">暂无建议，继续收集数据中...</div>
+                    `
+                    return
+                }
+                
+                adviceArea.innerHTML = `
+                    <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                        🎯 性能建议
+                        <span style="font-size: 14px; font-weight: normal; color: #6b7280;">
+                            评分: ${analysis.overallScore}/100 (${analysis.grade})
+                        </span>
+                    </h3>
+                    ${analysis.advices.map(advice => `
+                        <div style="padding: 12px; margin-bottom: 12px; border-radius: 6px; border-left: 4px solid ${this.getPriorityColor(advice.priority)}; background: ${this.getPriorityColor(advice.priority)}10;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                ${this.getPriorityIcon(advice.priority)} ${advice.title}
+                            </div>
+                            <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">
+                                ${advice.description}
+                            </div>
+                            <ul style="font-size: 13px; margin: 0; padding-left: 16px;">
+                                ${advice.suggestions.slice(0, 2).map(s => `<li>${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `).join('')}
+                `
+            }
+            
+            getDisplayName(name) {
+                const names = {
+                    'LCP': '最大内容绘制',
+                    'FID': '首次输入延迟',
+                    'CLS': '累积布局偏移',
+                    'FCP': '首次内容绘制',
+                    'TTFB': '首字节响应时间'
+                }
+                return names[name] || name
+            }
+            
+            getColorByRating(rating) {
+                switch (rating) {
+                    case 'good': return '#10b981'
+                    case 'needs-improvement': return '#f59e0b'
+                    case 'poor': return '#ef4444'
+                    default: return '#3b82f6'
+                }
+            }
+            
+            getPriorityColor(priority) {
+                switch (priority) {
+                    case 'critical': return '#ef4444'
+                    case 'high': return '#f97316'
+                    case 'medium': return '#f59e0b'
+                    case 'low': return '#3b82f6'
+                    default: return '#6b7280'
+                }
+            }
+            
+            getPriorityIcon(priority) {
+                switch (priority) {
+                    case 'critical': return '🚨'
+                    case 'high': return '⚠️'
+                    case 'medium': return '💡'
+                    case 'low': return 'ℹ️'
+                    default: return '📝'
+                }
+            }
+            
+            exportData(format) {
+                const data = {
+                    metrics: this.advisor.metrics,
+                    analysis: this.advisor.generateAnalysis(),
+                    timestamp: Date.now()
+                }
+                
+                const filename = `performance-data-${Date.now()}.${format}`
+                let content, mimeType
+                
+                if (format === 'json') {
+                    content = JSON.stringify(data, null, 2)
+                    mimeType = 'application/json'
+                } else {
+                    // CSV format
+                    const lines = [
+                        'Metric,Value,Unit,Rating,Timestamp',
+                        ...data.metrics.map(m => `${m.name},${m.value},${m.unit || ''},${m.rating || ''},${m.ts}`)
+                    ]
+                    content = lines.join('\n')
+                    mimeType = 'text/csv'
+                }
+                
+                const blob = new Blob([content], { type: mimeType })
+                const url = URL.createObjectURL(blob)
+                
+                const a = document.createElement('a')
+                a.href = url
+                a.download = filename
+                a.click()
+                
+                URL.revokeObjectURL(url)
+            }
+            
+            destroy() {
+                this.container.innerHTML = ''
+                this.isInitialized = false
+            }
+        }
+
+        // 全局状态
+        let dashboard = null
+        let monitoringTimer = null
+        let isMonitoring = false
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('dashboard-container')
+            
+            dashboard = new MockPerformanceDashboard({
+                container: container,
+                theme: 'light',
+                showAdvice: true
+            })
+            
+            dashboard.init()
+            
+            // 绑定事件
+            document.getElementById('start-monitoring').addEventListener('click', startMonitoring)
+            document.getElementById('stop-monitoring').addEventListener('click', stopMonitoring)
+            document.getElementById('simulate-data').addEventListener('click', simulateData)
+            document.getElementById('clear-data').addEventListener('click', clearData)
+            document.getElementById('export-json').addEventListener('click', () => exportData('json'))
+            document.getElementById('export-csv').addEventListener('click', () => exportData('csv'))
+        })
+
+        function startMonitoring() {
+            if (isMonitoring) return
+            
+            isMonitoring = true
+            updateButtons()
+            
+            // 初始化性能监控
+            MockPerf.init({
+                autoEnableWebVitals: true,
+                onMetric: (metric) => {
+                    dashboard.addMetric(metric)
+                }
+            })
+            
+            // 定期生成模拟数据
+            monitoringTimer = setInterval(() => {
+                // 模拟其他性能指标
+                if (Math.random() > 0.7) {
+                    MockPerf.generateMetric('memory', 'memory-usage', Math.random() * 100, 'percent')
+                }
+                
+                if (Math.random() > 0.8) {
+                    MockPerf.generateMetric('navigation', 'dns-lookup', Math.random() * 200, 'ms')
+                }
+                
+                if (Math.random() > 0.6) {
+                    MockPerf.generateMetric('custom', 'fps', 30 + Math.random() * 30, 'fps')
+                }
+            }, 2000)
+        }
+
+        function stopMonitoring() {
+            if (!isMonitoring) return
+            
+            isMonitoring = false
+            updateButtons()
+            
+            if (monitoringTimer) {
+                clearInterval(monitoringTimer)
+                monitoringTimer = null
+            }
+            
+            MockPerf.stop()
+        }
+
+        function simulateData() {
+            // 生成一批模拟数据
+            const metrics = [
+                { type: 'vitals', name: 'LCP', value: 2200, unit: 'ms', rating: 'good' },
+                { type: 'vitals', name: 'FID', value: 150, unit: 'ms', rating: 'needs-improvement' },
+                { type: 'vitals', name: 'CLS', value: 0.15, unit: 'score', rating: 'needs-improvement' },
+                { type: 'memory', name: 'memory-usage', value: 75, unit: 'percent', rating: 'needs-improvement' },
+                { type: 'navigation', name: 'dns-lookup', value: 120, unit: 'ms', rating: 'good' },
+                { type: 'custom', name: 'fps', value: 58, unit: 'fps', rating: 'good' }
+            ]
+            
+            metrics.forEach((metric, index) => {
+                setTimeout(() => {
+                    dashboard.addMetric({
+                        ...metric,
+                        ts: Date.now(),
+                        source: 'simulated'
+                    })
+                }, index * 200)
+            })
+        }
+
+        function clearData() {
+            dashboard.destroy()
+            dashboard.init()
+        }
+
+        function exportData(format) {
+            dashboard.exportData(format)
+        }
+
+        function updateButtons() {
+            const startBtn = document.getElementById('start-monitoring')
+            const stopBtn = document.getElementById('stop-monitoring')
+            const status = document.getElementById('status')
+            
+            if (isMonitoring) {
+                startBtn.disabled = true
+                stopBtn.disabled = false
+                status.textContent = '监控中'
+                status.className = 'status-indicator status-running'
+            } else {
+                startBtn.disabled = false
+                stopBtn.disabled = true
+                status.textContent = '已停止'
+                status.className = 'status-indicator status-stopped'
+            }
+        }
+
+        // 全局导出函数
+        window.exportData = exportData
+    </script>
+</body>
+</html>

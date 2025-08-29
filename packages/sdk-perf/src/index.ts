@@ -1,5 +1,5 @@
 /**
- * @platform/sdk-perf
+ * @wfynbzlx666/sdk-perf
  * BMT 平台 SDK 性能监控模块
  * 
  * 该模块是BMT平台性能监控系统的完整实现，提供了从基础到高级的
@@ -91,3 +91,29 @@ export type {
   LongTaskMetrics,    // 长任务性能数据结构（持续时间、阻塞时间等）
   PerfThresholds      // 性能指标阈值配置（用于自定义评级标准）
 } from './types.js'
+
+// 导出性能分析和建议相关功能
+// 这些功能提供了智能的性能分析和优化建议，帮助开发者快速识别和解决性能问题
+export { 
+  PerformanceAdvisor,     // 性能建议器类，提供完整的分析和建议功能
+  createPerformanceAdvisor, // 创建性能建议器实例的便捷函数
+  analyzePerformance       // 快速分析性能数据的函数
+} from './advisor.js'
+export type { 
+  PerformanceAdvice,      // 单个性能建议的数据结构
+  PerformanceAnalysis,    // 完整性能分析报告的数据结构
+  AnalysisOptions,        // 分析配置选项
+  AdviceType,            // 建议类型枚举
+  AdvicePriority,        // 建议优先级枚举
+  AdviceCategory         // 建议分类枚举
+} from './advisor.js'
+
+// 导出性能监控可视化面板
+// 提供完整的性能监控可视化解决方案，包括实时数据展示、趋势分析和智能建议
+export { 
+  PerformanceDashboard,      // 性能监控可视化面板类
+  createPerformanceDashboard // 创建性能监控面板的便捷函数
+} from './dashboard.js'
+export type { 
+  DashboardOptions          // 面板配置选项
+} from './dashboard.js'

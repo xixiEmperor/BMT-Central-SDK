@@ -1,5 +1,5 @@
 /**
- * @platform/sdk-core
+ * @wfynbzlx666/sdk-core
  * BMT 平台 SDK 核心能力包
  * 
  * 提供：

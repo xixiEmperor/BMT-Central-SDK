@@ -10,7 +10,7 @@
  * - 权限验证和频道管理
  * - 与后端管理API的集成
  * - 统计信息和广播功能
- * - 本地回环模式支持（无服务器演示）
+
  * 
  * 这是整个实时通信SDK的核心类，为上层应用提供简单易用的实时通信接口。
  */
@@ -124,7 +124,7 @@ export { type Subscription }
  * - 自动重连和心跳保活
  * - 消息确认和重传机制
  * - 离线消息队列
- * - 本地回环模式（便于演示）
+
  * - 集成后端管理API
  * - 频道权限控制
  * - 统计信息收集
@@ -162,6 +162,7 @@ export class Realtime {
   private static connectionListeners = new Set<ConnectionListener>()
   
   /** 主题监听器映射表，存储每个主题的所有订阅者 */
+  // 相当于一个池子，每个主题对应一个池子，池子里面存储了所有订阅了这个主题的回调函数
   private static topicListeners = new Map<string, Set<MessageListener<any>>>()
   
   /** 
@@ -183,8 +184,7 @@ export class Realtime {
   /** 重连计数器，记录重连尝试次数 */
   private static reconnectCount = 0
   
-  /** 本地回环模式标志，在无法连接服务器时启用本地演示模式 */
-  private static loopbackMode = false
+
   
   /** 心跳定时器，用于定期发送心跳包保持连接活跃 */
   private static heartbeatTimer: any = null
@@ -245,17 +245,16 @@ export class Realtime {
     this.pendingAcks.clear()         // 清空待确认消息
     this.topicListeners.clear()      // 清空主题监听器
     this.reconnectCount = 0          // 重置重连计数
-    this.loopbackMode = false        // 重置回环模式
+
   }
 
   /**
    * 连接到WebSocket服务器
    * 
    * 建立与服务器的Socket.IO连接，支持认证、自动重连和错误处理。
-   * 如果无法连接到服务器，会自动启用本地回环模式以便演示使用。
-   * 
+    *  
    * @param {RealtimeOptions} [options] 可选的配置选项，如果提供会先调用init方法
-   * @returns {Promise<void>} 连接成功时resolve，连接失败时启用回环模式也会resolve
+   * @returns {Promise<void>} 连接成功时resolve，连接失败时reject
    * @throws {Error} 当客户端未初始化时抛出错误
    * 
    * @example
@@ -288,7 +287,7 @@ export class Realtime {
     const reconnection = reconnect?.enabled !== false
     const reconnectionAttempts = reconnect?.maxAttempts && reconnect.maxAttempts > 0 
       ? reconnect.maxAttempts 
-      : Infinity
+      : Infinity // -1 表示无限重连
     const reconnectionDelay = reconnect?.baseMs ?? 1000
     const reconnectionDelayMax = reconnect?.capMs ?? 30_000
 
@@ -325,7 +324,7 @@ export class Realtime {
       s.on('connect', () => {
         console.log('🔗 Socket连接建立, ID:', s.id)
         this.status = 'connected'
-        this.loopbackMode = false
+    
         this.emitConnection()
         this.resubscribeAll()    // 恢复所有订阅
         this.flushQueue()        // 发送队列中的消息
@@ -366,14 +365,8 @@ export class Realtime {
 
       /**
        * 连接错误事件
-       * 如果是首次连接失败，启用本地回环模式
        */
       s.on('connect_error', async (_err: any) => {
-        // 如果是初始连接失败，启用本地回环模式便于演示
-        if (this.status === 'connecting') {
-          this.enableLoopback()
-          resolve()
-        }
         this.emitConnection(_err)
       })
 
@@ -818,12 +811,6 @@ export class Realtime {
    * 内部方法，用于发送不需要确认的消息
    */
   private static async send(message: RealtimeMessage<any>): Promise<void> {
-    if (this.loopbackMode) {
-      // 本地回环模式：直接派发给订阅者
-      if (message.type === 'event' && message.topic) this.dispatchMessage(message as EventMessage<any>)
-      return
-    }
-    
     if (!this.socket || this.status !== 'connected') {
       // 未连接时将消息加入队列，受maxQueueSize约束
       if (this.outboundQueue.length >= (this.options?.maxQueueSize ?? 1000)) {
@@ -889,11 +876,6 @@ export class Realtime {
       timestamp: Date.now()
     }
     
-    if (this.loopbackMode) {
-      console.log(`📡 本地模式订阅: ${topic}`)
-      return
-    }
-    
     if (!this.socket || this.status !== 'connected') {
       console.log(`⏳ 连接未就绪，订阅将在连接后重新发送: ${topic}`)
       return
@@ -911,19 +893,6 @@ export class Realtime {
 
   // 内部：发送发布消息
   private static async sendPublishMessage(messageData: any): Promise<void> {
-    if (this.loopbackMode) {
-      // 本地回环模式
-      console.log(`📤 本地模式发布: ${messageData.topic}`)
-      this.dispatchMessage({
-        type: 'event',
-        topic: messageData.topic,
-        payload: messageData.payload,
-        id: messageData.messageId,
-        ts: messageData.timestamp
-      })
-      return
-    }
-
     if (!this.socket || this.status !== 'connected') {
       throw new Error('连接未建立，无法发布消息')
     }
@@ -988,13 +957,5 @@ export class Realtime {
     }
   }
 
-  // 内部：启用本地回环模式（无后端时代码路径）
-  private static enableLoopback(): void {
-    this.loopbackMode = true
-    this.status = 'connected'
-    this.emitConnection()
-    // 立即恢复订阅与队列（本地派发）
-    this.resubscribeAll()
-    this.flushQueue()
-  }
+
 }

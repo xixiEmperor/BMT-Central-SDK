@@ -4,8 +4,8 @@
  */
 
 import { sdkManager } from './sdk-manager.js';
-import { Telemetry } from '@platform/sdk-telemetry';
-import { Realtime } from '@platform/sdk-realtime';
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry';
+import { Realtime } from '@wfynbzlx666/sdk-realtime';
 
 /**
  * 基础使用示例
@@ -157,7 +157,7 @@ export function useSDKInReact() {
   // 在React组件中的使用方式
   const exampleComponent = `
     import React, { useEffect, useState } from 'react';
-    import { sdkManager, Telemetry } from '@platform/sdk-core';
+    import { sdkManager, Telemetry } from '@wfynbzlx666/sdk-core';
 
     function MyComponent() {
       const [sdkStatus, setSdkStatus] = useState('uninitialized');
@@ -233,7 +233,7 @@ export function useSDKInVue() {
 
     <script setup>
     import { ref, onMounted, onUnmounted } from 'vue';
-    import { sdkManager, Telemetry } from '@platform/sdk-core';
+    import { sdkManager, Telemetry } from '@wfynbzlx666/sdk-core';
 
     const sdkStatus = ref('uninitialized');
     let unsubscribe = null;

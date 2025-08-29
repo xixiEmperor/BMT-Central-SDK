@@ -1,4 +1,4 @@
-# @platform/sdk-realtime
+# @wfynbzlx666/sdk-realtime
 
 BMT 平台 SDK 实时通信模块，基于 Socket.IO 提供可靠的实时双向通信能力，支持心跳保活、自动重连、消息确认和跨标签页协调。
 
@@ -8,15 +8,15 @@ BMT 平台 SDK 实时通信模块，基于 Socket.IO 提供可靠的实时双向
 - **心跳保活**：自动心跳检测，保持连接活跃
 - **自动重连**：断线后智能重连，支持指数退避
 - **消息确认机制**：ACK 机制确保消息可靠传输
-- **序列号有序**：消息序列号保证消息顺序
-- **跨标签页协调**：多标签页间的连接协调和状态同步
-- **频道权限管理**：基于权限的频道订阅和发布控制
+- **离线消息队列**：连接断开时缓存消息，重连后自动发送
+
+- **频道权限检查**：集成后端API的频道访问权限验证
 - **TypeScript 支持**：完整的类型定义和 IntelliSense 支持
 
 ## 📦 安装
 
 ```bash
-npm install @platform/sdk-realtime
+npm install @wfynbzlx666/sdk-realtime
 ```
 
 ## 🎯 核心模块
@@ -28,19 +28,20 @@ npm install @platform/sdk-realtime
 #### 🚀 快速开始
 
 ```typescript
-import { Realtime } from '@platform/sdk-realtime'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 // 初始化实时通信
-await Realtime.init({
+Realtime.init({
   url: 'ws://localhost:5000',
-  auth: () => 'your-access-token', // 认证令牌提供者
-  namespace: '/', // Socket.IO 命名空间
-  debug: true
+  auth: () => 'your-access-token' // 认证令牌提供者
 })
+
+// 连接到服务器
+await Realtime.connect()
 
 // 订阅消息
 const subscription = Realtime.subscribe('notifications', (message) => {
-  console.log('收到通知:', message)
+  console.log('收到通知:', message.payload)
 })
 
 // 发布消息
@@ -51,18 +52,15 @@ await Realtime.publish('user-updates', {
 
 // 取消订阅
 subscription.unsubscribe()
-
-// 断开连接
-await Realtime.disconnect()
 ```
 
 #### 🔧 高级配置
 
 ```typescript
-import { Realtime } from '@platform/sdk-realtime'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 // 完整配置示例
-await Realtime.init({
+Realtime.init({
   url: 'wss://api.example.com',
   
   // 认证配置
@@ -72,40 +70,25 @@ await Realtime.init({
     return token
   },
   
-  // Socket.IO 配置
-  namespace: '/v1',
-  transports: ['websocket', 'polling'],
-  
   // 连接配置
   heartbeatInterval: 30000,     // 心跳间隔 30 秒
-  reconnectDelay: 1000,         // 重连延迟 1 秒
-  maxReconnectAttempts: 5,      // 最大重连次数
+  
+  // 重连配置
+  reconnect: {
+    enabled: true,              // 启用自动重连
+    maxAttempts: 5,            // 最大重连次数
+    baseMs: 1000,              // 重连基础间隔
+    capMs: 30000               // 重连最大间隔
+  },
   
   // 消息配置
-  messageTimeout: 10000,        // 消息确认超时 10 秒
-  enableSequencing: true,       // 启用消息序列号
-  enableCrossTabCoordination: true, // 启用跨标签页协调
-  
-  // 调试配置
-  debug: process.env.NODE_ENV === 'development',
-  
-  // 事件回调
-  onConnect: (socket) => {
-    console.log('WebSocket 连接成功:', socket.id)
-  },
-  
-  onDisconnect: (reason) => {
-    console.log('WebSocket 连接断开:', reason)
-  },
-  
-  onReconnect: (attempt) => {
-    console.log(`第 ${attempt} 次重连成功`)
-  },
-  
-  onError: (error) => {
-    console.error('WebSocket 连接错误:', error)
-  }
+  ackTimeout: 10000,          // ACK确认超时 10 秒
+  maxRetries: 3,              // 消息最大重试次数
+  maxQueueSize: 1000          // 消息队列最大长度
 })
+
+// 连接到服务器
+await Realtime.connect()
 ```
 
 ### 消息订阅与发布
@@ -117,43 +100,27 @@ await Realtime.init({
 ```typescript
 // 基础订阅
 const subscription = Realtime.subscribe('notifications', (message) => {
-  console.log('收到消息:', message.data)
-})
-
-// 带选项的订阅
-const advancedSubscription = Realtime.subscribe('user-events', {
-  onMessage: (message) => {
-    console.log('用户事件:', message)
-  },
-  
-  onError: (error) => {
-    console.error('订阅错误:', error)
-  },
-  
-  // 消息过滤器
-  filter: (message) => {
-    return message.type === 'important'
-  },
-  
-  // 自动确认消息
-  autoAck: true
+  console.log('收到消息:', message.payload)
 })
 
 // 订阅多个频道
-const multiSubscription = Realtime.subscribeMultiple([
-  'notifications',
-  'system-alerts',
-  'user-messages'
-], {
-  onMessage: (channel, message) => {
-    console.log(`频道 ${channel} 收到消息:`, message)
-  }
+const subscription1 = Realtime.subscribe('notifications', (message) => {
+  console.log('通知消息:', message.payload)
+})
+
+const subscription2 = Realtime.subscribe('system-alerts', (message) => {
+  console.log('系统警报:', message.payload)
+})
+
+const subscription3 = Realtime.subscribe('user-messages', (message) => {
+  console.log('用户消息:', message.payload)
 })
 
 // 取消订阅
 subscription.unsubscribe()
-advancedSubscription.unsubscribe()
-multiSubscription.unsubscribe()
+subscription1.unsubscribe()
+subscription2.unsubscribe()
+subscription3.unsubscribe()
 ```
 
 #### 📤 消息发布
@@ -167,30 +134,23 @@ await Realtime.publish('user-status', {
 })
 
 // 带确认的发布
-const result = await Realtime.publish('important-data', {
-  data: 'critical information'
-}, {
-  requireAck: true,          // 要求确认
-  timeout: 5000,            // 确认超时时间
-  retries: 3                // 重试次数
-})
-
-if (result.success) {
+try {
+  await Realtime.publish('important-data', {
+    data: 'critical information'
+  }, {
+    ackRequired: true          // 要求确认，默认为true
+  })
   console.log('消息发布成功')
-} else {
-  console.error('消息发布失败:', result.error)
+} catch (error) {
+  console.error('消息发布失败:', error)
 }
 
-// 广播到所有连接的客户端
-await Realtime.broadcast('system-announcement', {
+// 不需要确认的发布
+await Realtime.publish('system-announcement', {
   message: '系统将于 30 分钟后维护',
   level: 'warning'
-})
-
-// 向特定用户发送私信
-await Realtime.sendToUser('user123', 'private-message', {
-  from: 'admin',
-  content: '您有新的系统通知'
+}, {
+  ackRequired: false
 })
 ```
 
@@ -202,155 +162,129 @@ await Realtime.sendToUser('user123', 'private-message', {
 
 ```typescript
 // 检查连接状态
-if (Realtime.isConnected()) {
+const status = Realtime.getStatus()
+if (status === 'connected') {
   console.log('WebSocket 已连接')
 }
 
-// 获取连接信息
-const connectionInfo = Realtime.getConnectionInfo()
-console.log('连接信息:', {
-  id: connectionInfo.id,
-  namespace: connectionInfo.namespace,
-  transport: connectionInfo.transport,
-  connectedAt: connectionInfo.connectedAt
+// 获取客户端统计信息
+const stats = Realtime.getStats()
+console.log('客户端统计:', {
+  status: stats.status,
+  subscriptions: stats.subscriptions,
+  queueSize: stats.queueSize,
+  reconnectCount: stats.reconnectCount
 })
 
 // 监听连接状态变化
-Realtime.onConnectionStateChange((state, info) => {
-  console.log('连接状态变化:', state, info)
+const unsubscribe = Realtime.onConnectionChange((status, error) => {
+  console.log('连接状态变化:', status)
   
-  switch (state) {
+  switch (status) {
     case 'connecting':
-      showLoadingIndicator()
+      console.log('正在连接...')
       break
     case 'connected':
-      hideLoadingIndicator()
+      console.log('连接成功')
       break
     case 'disconnected':
-      showOfflineIndicator()
+      console.log('连接断开')
+      break
+    case 'reconnecting':
+      console.log('正在重连...')
       break
     case 'error':
-      showErrorMessage(info.error)
+      console.error('连接错误:', error)
       break
   }
 })
+
+// 取消监听
+// unsubscribe()
 ```
 
-#### 🔄 手动重连
+#### 🔄 重连机制
 
 ```typescript
-// 手动重连
-try {
-  await Realtime.reconnect()
-  console.log('重连成功')
-} catch (error) {
-  console.error('重连失败:', error)
-}
-
-// 重连到不同的服务器
-await Realtime.reconnectTo('wss://backup.example.com')
-
-// 获取重连统计
-const reconnectStats = Realtime.getReconnectStats()
-console.log('重连统计:', {
-  attempts: reconnectStats.attempts,
-  successes: reconnectStats.successes,
-  lastAttempt: reconnectStats.lastAttempt
-})
-```
-
-### 跨标签页协调
-
-防止多个标签页建立重复连接，优化资源使用。
-
-#### 🔀 标签页协调
-
-```typescript
-// 启用跨标签页协调
-await Realtime.init({
+// 重连是自动进行的，可以通过配置控制
+Realtime.init({
   url: 'ws://localhost:5000',
-  enableCrossTabCoordination: true,
-  
-  // 主标签页回调
-  onBecomeMaster: () => {
-    console.log('当前标签页成为主连接')
-  },
-  
-  // 从标签页回调
-  onBecomeSlave: () => {
-    console.log('当前标签页成为从连接')
-  },
-  
-  // 标签页间消息转发
-  onCrossTabMessage: (message) => {
-    console.log('跨标签页消息:', message)
+  reconnect: {
+    enabled: true,        // 启用自动重连
+    maxAttempts: 5,      // 最大重连次数，-1表示无限重连
+    baseMs: 1000,        // 重连基础间隔
+    capMs: 30000         // 重连最大间隔
   }
 })
 
-// 检查是否为主标签页
-if (Realtime.isMasterTab()) {
-  console.log('当前是主标签页，负责 WebSocket 连接')
-}
-
-// 向其他标签页发送消息
-Realtime.sendToOtherTabs({
-  type: 'user-action',
-  data: { action: 'logout' }
-})
-
-// 监听其他标签页的消息
-Realtime.onMessageFromOtherTabs((message) => {
-  if (message.type === 'user-action' && message.data.action === 'logout') {
-    // 同步登出状态
-    handleLogout()
+// 监听重连过程
+Realtime.onConnectionChange((status) => {
+  if (status === 'reconnecting') {
+    const stats = Realtime.getStats()
+    console.log(`正在进行第 ${stats.reconnectCount} 次重连...`)
   }
 })
 ```
 
-### 权限管理
+### 管理功能
 
-基于权限的频道访问控制。
+提供服务器统计和系统广播功能。
 
-#### 🔐 频道权限
+#### 📊 服务器统计
 
 ```typescript
-import { ChannelPermissions } from '@platform/sdk-realtime'
+// 获取服务器统计信息
+try {
+  const serverStats = await Realtime.getServerStats()
+  console.log('服务器统计:', {
+    connectedClients: serverStats.connectedClients,
+    totalMessages: serverStats.totalMessages,
+    uptime: serverStats.uptime
+  })
+} catch (error) {
+  console.error('获取服务器统计失败:', error)
+}
+```
 
-// 检查频道权限
-const canSubscribe = await ChannelPermissions.checkChannelPermission(
-  'admin-notifications',
-  'subscribe'
-)
+#### 📢 系统广播
 
-if (canSubscribe) {
-  const subscription = Realtime.subscribe('admin-notifications', handleAdminMessage)
-} else {
-  console.log('没有权限订阅管理员通知')
+```typescript
+// 发送系统广播消息
+try {
+  await Realtime.broadcast('系统维护通知', 'info', ['user1', 'user2'])
+  console.log('广播发送成功')
+} catch (error) {
+  console.error('广播发送失败:', error)
 }
 
-// 检查发布权限
-const canPublish = await ChannelPermissions.checkChannelPermission(
-  'user-events',
-  'publish'
-)
+// 发送警告级别的广播
+await Realtime.broadcast('服务器负载过高', 'warning')
 
-if (canPublish) {
-  await Realtime.publish('user-events', eventData)
-}
+// 发送错误级别的广播
+await Realtime.broadcast('系统出现异常', 'error')
+```
 
-// 获取用户可访问的所有频道
-const userChannels = await ChannelPermissions.getUserChannels()
-console.log('可访问的频道:', userChannels)
+#### 🔐 频道权限检查
 
-// 监听权限变化
-ChannelPermissions.onPermissionChange((channel, permission, granted) => {
-  console.log(`频道 ${channel} 的 ${permission} 权限变化: ${granted}`)
-  
-  if (!granted && permission === 'subscribe') {
-    // 权限被撤销，取消订阅
-    Realtime.unsubscribe(channel)
+```typescript
+// 检查频道访问权限
+try {
+  const hasAccess = await Realtime.canAccessChannel('admin-channel')
+  if (hasAccess.canSubscribe) {
+    const subscription = Realtime.subscribe('admin-channel', (message) => {
+      console.log('管理员消息:', message.payload)
+    })
   }
-})
+  
+  if (hasAccess.canPublish) {
+    await Realtime.publish('admin-channel', {
+      type: 'admin-action',
+      data: { action: 'user-ban', userId: '123' }
+    })
+  }
+} catch (error) {
+  console.error('权限检查失败:', error)
+}
 ```
 
 ## 📊 使用场景
@@ -358,27 +292,26 @@ ChannelPermissions.onPermissionChange((channel, permission, granted) => {
 ### 1. 实时聊天应用
 
 ```typescript
-import { Realtime } from '@platform/sdk-realtime'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 class ChatService {
   private messageSubscription: any
   
   async initializeChat(userId: string, roomId: string) {
     // 初始化实时连接
-    await Realtime.init({
+    Realtime.init({
       url: 'wss://chat.example.com',
-      auth: () => this.getAuthToken(),
-      namespace: '/chat'
+      auth: () => this.getAuthToken()
     })
     
+    // 连接到服务器
+    await Realtime.connect()
+    
     // 订阅聊天室消息
-    this.messageSubscription = Realtime.subscribe(`room:${roomId}`, {
-      onMessage: (message) => {
+    this.messageSubscription = Realtime.subscribe(`room:${roomId}`, (message) => {
+      // 过滤掉自己发送的消息（避免重复显示）
+      if (message.payload.senderId !== userId) {
         this.handleChatMessage(message)
-      },
-      filter: (message) => {
-        // 过滤掉自己发送的消息（避免重复显示）
-        return message.senderId !== userId
       }
     })
     
@@ -396,8 +329,7 @@ class ChatService {
         senderId: userId,
         timestamp: Date.now()
       }, {
-        requireAck: true,
-        timeout: 5000
+        ackRequired: true
       })
     } catch (error) {
       console.error('发送消息失败:', error)
@@ -416,22 +348,34 @@ class ChatService {
   private handleChatMessage(message: any) {
     // 处理接收到的聊天消息
     const chatMessage = {
-      id: message.id,
-      content: message.content,
-      sender: message.senderId,
-      timestamp: message.timestamp
+      id: message.payload.id,
+      content: message.payload.content,
+      sender: message.payload.senderId,
+      timestamp: message.payload.timestamp
     }
     
     // 更新 UI
     this.addMessageToUI(chatMessage)
-    
-    // 发送消息确认
-    Realtime.ack(message.id)
   }
   
   private handleUserStatusUpdate(statusUpdate: any) {
     // 更新用户状态显示
-    this.updateUserStatusInUI(statusUpdate.userId, statusUpdate.status)
+    this.updateUserStatusInUI(statusUpdate.payload.userId, statusUpdate.payload.status)
+  }
+  
+  private getAuthToken(): string {
+    // 实现获取认证令牌的逻辑
+    return 'your-auth-token'
+  }
+  
+  private addMessageToUI(message: any) {
+    // 实现添加消息到UI的逻辑
+    console.log('新消息:', message)
+  }
+  
+  private updateUserStatusInUI(userId: string, status: string) {
+    // 实现更新用户状态UI的逻辑
+    console.log(`用户 ${userId} 状态变更为: ${status}`)
   }
   
   cleanup() {
@@ -446,18 +390,20 @@ class ChatService {
 ### 2. 实时数据看板
 
 ```typescript
-import { Realtime } from '@platform/sdk-realtime'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 class DashboardService {
   private subscriptions: Map<string, any> = new Map()
   
   async initializeDashboard() {
-    await Realtime.init({
+    Realtime.init({
       url: 'wss://api.example.com',
       auth: () => this.getAuthToken(),
-      namespace: '/dashboard',
       heartbeatInterval: 10000 // 更频繁的心跳，确保数据实时性
     })
+    
+    // 连接到服务器
+    await Realtime.connect()
     
     // 订阅多个数据源
     this.subscribeToDataSources([
@@ -470,14 +416,8 @@ class DashboardService {
   
   private subscribeToDataSources(dataSources: string[]) {
     dataSources.forEach(source => {
-      const subscription = Realtime.subscribe(source, {
-        onMessage: (data) => {
-          this.updateDashboardData(source, data)
-        },
-        onError: (error) => {
-          console.error(`数据源 ${source} 订阅错误:`, error)
-          this.showDataSourceError(source)
-        }
+      const subscription = Realtime.subscribe(source, (data) => {
+        this.updateDashboardData(source, data)
       })
       
       this.subscriptions.set(source, subscription)
@@ -487,16 +427,16 @@ class DashboardService {
   private updateDashboardData(source: string, data: any) {
     switch (source) {
       case 'system-metrics':
-        this.updateSystemMetrics(data)
+        this.updateSystemMetrics(data.payload)
         break
       case 'user-analytics':
-        this.updateUserAnalytics(data)
+        this.updateUserAnalytics(data.payload)
         break
       case 'error-reports':
-        this.updateErrorReports(data)
+        this.updateErrorReports(data.payload)
         break
       case 'performance-metrics':
-        this.updatePerformanceMetrics(data)
+        this.updatePerformanceMetrics(data.payload)
         break
     }
   }
@@ -508,6 +448,35 @@ class DashboardService {
       timeRange,
       requestId: this.generateRequestId()
     })
+  }
+  
+  private getAuthToken(): string {
+    // 实现获取认证令牌的逻辑
+    return 'your-auth-token'
+  }
+  
+  private generateRequestId(): string {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 9)
+  }
+  
+  private updateSystemMetrics(data: any) {
+    // 实现系统指标更新逻辑
+    console.log('系统指标更新:', data)
+  }
+  
+  private updateUserAnalytics(data: any) {
+    // 实现用户分析更新逻辑
+    console.log('用户分析更新:', data)
+  }
+  
+  private updateErrorReports(data: any) {
+    // 实现错误报告更新逻辑
+    console.log('错误报告更新:', data)
+  }
+  
+  private updatePerformanceMetrics(data: any) {
+    // 实现性能指标更新逻辑
+    console.log('性能指标更新:', data)
   }
   
   cleanup() {
@@ -523,13 +492,14 @@ class DashboardService {
 ### 3. 多人协作编辑
 
 ```typescript
-import { Realtime } from '@platform/sdk-realtime'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 class CollaborativeEditor {
   private documentId: string
   private userId: string
   private documentSubscription: any
   private cursorSubscription: any
+  private sequenceNumber: number = 0
   
   constructor(documentId: string, userId: string) {
     this.documentId = documentId
@@ -537,23 +507,21 @@ class CollaborativeEditor {
   }
   
   async initialize() {
-    await Realtime.init({
+    Realtime.init({
       url: 'wss://collab.example.com',
-      auth: () => this.getAuthToken(),
-      namespace: '/documents',
-      enableSequencing: true // 确保操作顺序
+      auth: () => this.getAuthToken()
     })
+    
+    // 连接到服务器
+    await Realtime.connect()
     
     // 订阅文档变更
     this.documentSubscription = Realtime.subscribe(
       `document:${this.documentId}:changes`,
-      {
-        onMessage: (operation) => {
+      (operation) => {
+        // 过滤掉自己的操作
+        if (operation.payload.userId !== this.userId) {
           this.applyRemoteOperation(operation)
-        },
-        filter: (operation) => {
-          // 过滤掉自己的操作
-          return operation.userId !== this.userId
         }
       }
     )
@@ -561,11 +529,10 @@ class CollaborativeEditor {
     // 订阅光标位置
     this.cursorSubscription = Realtime.subscribe(
       `document:${this.documentId}:cursors`,
-      {
-        onMessage: (cursorUpdate) => {
+      (cursorUpdate) => {
+        if (cursorUpdate.payload.userId !== this.userId) {
           this.updateRemoteCursor(cursorUpdate)
-        },
-        filter: (update) => update.userId !== this.userId
+        }
       }
     )
     
@@ -581,8 +548,7 @@ class CollaborativeEditor {
       timestamp: Date.now(),
       sequenceNumber: this.getNextSequenceNumber()
     }, {
-      requireAck: true,
-      timeout: 3000
+      ackRequired: true
     })
   }
   
@@ -608,16 +574,42 @@ class CollaborativeEditor {
   // 应用远程操作
   private applyRemoteOperation(operation: any) {
     // 应用操作变换（OT 算法）
-    const transformedOperation = this.transformOperation(operation)
+    const transformedOperation = this.transformOperation(operation.payload)
     this.applyOperationToDocument(transformedOperation)
-    
-    // 确认接收
-    Realtime.ack(operation.id)
   }
   
   // 更新远程用户光标
   private updateRemoteCursor(cursorUpdate: any) {
-    this.displayRemoteCursor(cursorUpdate.userId, cursorUpdate.position)
+    this.displayRemoteCursor(cursorUpdate.payload.userId, cursorUpdate.payload.position)
+  }
+  
+  private getAuthToken(): string {
+    // 实现获取认证令牌的逻辑
+    return 'your-auth-token'
+  }
+  
+  private getUsername(): string {
+    // 实现获取用户名的逻辑
+    return `User_${this.userId}`
+  }
+  
+  private getNextSequenceNumber(): number {
+    return ++this.sequenceNumber
+  }
+  
+  private transformOperation(operation: any): any {
+    // 实现操作变换逻辑（OT算法）
+    return operation
+  }
+  
+  private applyOperationToDocument(operation: any) {
+    // 实现将操作应用到文档的逻辑
+    console.log('应用操作到文档:', operation)
+  }
+  
+  private displayRemoteCursor(userId: string, position: number) {
+    // 实现显示远程用户光标的逻辑
+    console.log(`用户 ${userId} 光标位置:`, position)
   }
   
   cleanup() {
@@ -643,7 +635,7 @@ class CollaborativeEditor {
 ### 4. 实时通知系统
 
 ```typescript
-import { Realtime } from '@platform/sdk-realtime'
+import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 class NotificationService {
   private userId: string
@@ -654,11 +646,13 @@ class NotificationService {
   }
   
   async initialize() {
-    await Realtime.init({
+    Realtime.init({
       url: 'wss://notifications.example.com',
-      auth: () => this.getAuthToken(),
-      namespace: '/notifications'
+      auth: () => this.getAuthToken()
     })
+    
+    // 连接到服务器
+    await Realtime.connect()
     
     // 订阅个人通知
     this.subscribeToPersonalNotifications()
@@ -673,11 +667,8 @@ class NotificationService {
   private subscribeToPersonalNotifications() {
     const subscription = Realtime.subscribe(
       `user:${this.userId}:notifications`,
-      {
-        onMessage: (notification) => {
-          this.handlePersonalNotification(notification)
-        },
-        autoAck: true
+      (notification) => {
+        this.handlePersonalNotification(notification)
       }
     )
     
@@ -685,13 +676,10 @@ class NotificationService {
   }
   
   private subscribeToSystemNotifications() {
-    const subscription = Realtime.subscribe('system:notifications', {
-      onMessage: (notification) => {
+    const subscription = Realtime.subscribe('system:notifications', (notification) => {
+      // 根据用户等级过滤通知
+      if (this.shouldReceiveSystemNotification(notification.payload)) {
         this.handleSystemNotification(notification)
-      },
-      filter: (notification) => {
-        // 根据用户等级过滤通知
-        return this.shouldReceiveSystemNotification(notification)
       }
     })
     
@@ -705,10 +693,8 @@ class NotificationService {
     userGroups.forEach(groupId => {
       const subscription = Realtime.subscribe(
         `group:${groupId}:notifications`,
-        {
-          onMessage: (notification) => {
-            this.handleGroupNotification(groupId, notification)
-          }
+        (notification) => {
+          this.handleGroupNotification(groupId, notification)
         }
       )
       
@@ -720,10 +706,10 @@ class NotificationService {
     // 显示个人通知
     this.showNotification({
       type: 'personal',
-      title: notification.title,
-      message: notification.message,
-      priority: notification.priority,
-      actions: notification.actions
+      title: notification.payload.title,
+      message: notification.payload.message,
+      priority: notification.payload.priority,
+      actions: notification.payload.actions
     })
     
     // 更新未读计数
@@ -735,7 +721,7 @@ class NotificationService {
     this.showNotification({
       type: 'system',
       title: '系统通知',
-      message: notification.message,
+      message: notification.payload.message,
       priority: 'high',
       persistent: true
     })
@@ -746,7 +732,7 @@ class NotificationService {
     this.showNotification({
       type: 'group',
       title: `群组通知 - ${this.getGroupName(groupId)}`,
-      message: notification.message,
+      message: notification.payload.message,
       groupId
     })
     
@@ -766,10 +752,8 @@ class NotificationService {
     if (!this.subscriptions.has(`group:${groupId}`)) {
       const subscription = Realtime.subscribe(
         `group:${groupId}:notifications`,
-        {
-          onMessage: (notification) => {
-            this.handleGroupNotification(groupId, notification)
-          }
+        (notification) => {
+          this.handleGroupNotification(groupId, notification)
         }
       )
       
@@ -784,6 +768,36 @@ class NotificationService {
       subscription.unsubscribe()
       this.subscriptions.delete(`group:${groupId}`)
     }
+  }
+  
+  private getAuthToken(): string {
+    // 实现获取认证令牌的逻辑
+    return 'your-auth-token'
+  }
+  
+  private getUserGroups(): string[] {
+    // 实现获取用户群组的逻辑
+    return ['group1', 'group2']
+  }
+  
+  private shouldReceiveSystemNotification(notification: any): boolean {
+    // 实现系统通知过滤逻辑
+    return true
+  }
+  
+  private showNotification(notification: any) {
+    // 实现显示通知的逻辑
+    console.log('显示通知:', notification)
+  }
+  
+  private updateUnreadCount(type: string) {
+    // 实现更新未读计数的逻辑
+    console.log(`更新未读计数: ${type}`)
+  }
+  
+  private getGroupName(groupId: string): string {
+    // 实现获取群组名称的逻辑
+    return `Group ${groupId}`
   }
   
   cleanup() {
@@ -802,43 +816,35 @@ class NotificationService {
 
 ```typescript
 interface RealtimeOptions {
-  // 连接配置
-  url: string                           // WebSocket 服务器地址
-  auth?: () => string | Promise<string> // 认证令牌提供者
-  namespace?: string                    // Socket.IO 命名空间
-  transports?: string[]                 // 传输方式
+  /** WebSocket 服务器地址 */
+  url: string
   
-  // 重连配置
-  reconnectDelay?: number              // 重连延迟，默认 1000ms
-  maxReconnectAttempts?: number        // 最大重连次数，默认 5
-  heartbeatInterval?: number           // 心跳间隔，默认 30000ms
+  /** 认证令牌提供者函数 */
+  auth?: () => string | Promise<string>
   
-  // 消息配置
-  messageTimeout?: number              // 消息确认超时，默认 10000ms
-  enableSequencing?: boolean           // 启用消息序列号，默认 false
-  enableCrossTabCoordination?: boolean // 启用跨标签页协调，默认 false
+  /** 心跳间隔时间（毫秒），默认 30000 */
+  heartbeatInterval?: number
   
-  // 调试配置
-  debug?: boolean                      // 调试模式，默认 false
+  /** 重连配置选项 */
+  reconnect?: {
+    /** 是否启用自动重连，默认 true */
+    enabled?: boolean
+    /** 最大重连尝试次数，-1表示无限重连，默认 -1 */
+    maxAttempts?: number
+    /** 重连间隔基础时间（毫秒），默认 1000 */
+    baseMs?: number
+    /** 最大重连间隔时间（毫秒），默认 30000 */
+    capMs?: number
+  }
   
-  // 事件回调
-  onConnect?: (socket: any) => void
-  onDisconnect?: (reason: string) => void
-  onReconnect?: (attempt: number) => void
-  onError?: (error: Error) => void
-  onBecomeMaster?: () => void
-  onBecomeSlave?: () => void
-}
-```
-
-### 订阅配置
-
-```typescript
-interface SubscriptionOptions {
-  onMessage?: (message: any) => void    // 消息处理器
-  onError?: (error: Error) => void      // 错误处理器
-  filter?: (message: any) => boolean    // 消息过滤器
-  autoAck?: boolean                     // 自动确认消息，默认 false
+  /** ACK确认超时时间（毫秒），默认 5000 */
+  ackTimeout?: number
+  
+  /** 消息最大重发次数，默认 3 */
+  maxRetries?: number
+  
+  /** 消息队列最大长度，默认 1000 */
+  maxQueueSize?: number
 }
 ```
 
@@ -846,50 +852,51 @@ interface SubscriptionOptions {
 
 ```typescript
 interface PublishOptions {
-  requireAck?: boolean                  // 是否要求确认，默认 false
-  timeout?: number                      // 确认超时时间，默认 10000ms
-  retries?: number                      // 重试次数，默认 0
+  /** 是否需要ACK确认，默认 true */
+  ackRequired?: boolean
 }
 ```
 
 ## 🔍 类型定义
 
 ```typescript
-// 实时消息类型
-interface RealtimeMessage {
-  id: string
-  channel: string
-  data: any
-  timestamp: number
-  sequenceNumber?: number
-  requiresAck?: boolean
+// 连接状态枚举
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error'
+
+// 消息类型枚举
+type MessageType = 'event' | 'ack' | 'error' | 'subscribe' | 'publish'
+
+// 基础消息结构
+interface RealtimeMessage<T = unknown> {
+  type: MessageType
+  topic?: string
+  id?: string
+  seq?: number
+  payload?: T
+  code?: string
+  message?: string
+  ts?: number
+}
+
+// 事件消息
+interface EventMessage<T = unknown> extends RealtimeMessage<T> {
+  type: 'event'
+  topic: string
+  payload: T
 }
 
 // 订阅对象
 interface Subscription {
-  id: string
-  channel: string
   unsubscribe(): void
+  getTopic(): string
   isActive(): boolean
 }
 
-// 连接信息
-interface ConnectionInfo {
-  id: string
-  namespace: string
-  transport: string
-  connectedAt: number
-  isConnected: boolean
-}
+// 消息监听器
+type MessageListener<T = unknown> = (message: RealtimeMessage<T>) => void
 
-// 重连统计
-interface ReconnectStats {
-  attempts: number
-  successes: number
-  failures: number
-  lastAttempt?: number
-  lastSuccess?: number
-}
+// 连接状态监听器
+type ConnectionListener = (status: ConnectionStatus, error?: Error) => void
 ```
 
 ## 🚀 性能优化建议

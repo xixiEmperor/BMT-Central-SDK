@@ -450,7 +450,7 @@ export class Telemetry {
   /**
    * 转换为API格式的事件
    */
-  private static convertToAPIEvent(event: TelemetryEvent): import('@platform/sdk-http').TelemetryEvent {
+  private static convertToAPIEvent(event: TelemetryEvent): import('@wfynbzlx666/sdk-http').TelemetryEvent {
     return {
       id: event.id!,
       type: event.type as any,
@@ -473,7 +473,7 @@ export class Telemetry {
   /**
    * 应用采样率
    */
-  private static applySampling(events: import('@platform/sdk-http').TelemetryEvent[]): import('@platform/sdk-http').TelemetryEvent[] {
+  private static applySampling(events: import('@wfynbzlx666/sdk-http').TelemetryEvent[]): import('@wfynbzlx666/sdk-http').TelemetryEvent[] {
     const sampleRate = this.options?.sampleRate ?? 1.0
     
     if (sampleRate >= 1.0) {
@@ -486,7 +486,7 @@ export class Telemetry {
   /**
    * 降级方案：使用 sendBeacon
    */
-  private static async fallbackFlush(events: import('@platform/sdk-http').TelemetryEvent[]): Promise<boolean> {
+  private static async fallbackFlush(events: import('@wfynbzlx666/sdk-http').TelemetryEvent[]): Promise<boolean> {
     if (typeof navigator === 'undefined' || !('sendBeacon' in navigator)) {
       return false
     }

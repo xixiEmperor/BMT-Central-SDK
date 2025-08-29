@@ -10,7 +10,7 @@ import type { HttpPlugin } from './plugins/types.js'
 // 导入 HTTP 请求配置类型
 import type { HttpRequestConfig } from './types.js'
 // 导入重试机制相关工具
-import { withRetry, type RetryOptions } from '@platform/sdk-core'
+import { withRetry, type RetryOptions } from '@wfynbzlx666/sdk-core'
 // 导入 HTTP 错误处理类
 import { HttpError } from './errors.js'
 

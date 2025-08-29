@@ -1,4 +1,4 @@
-# @platform/sdk-telemetry
+# @wfynbzlx666/sdk-telemetry
 
 BMT 平台 SDK 遥测数据收集模块，提供统一的事件模型、批量缓冲上报、跨标签页去重和 Beacon 兜底等完整的遥测数据收集解决方案。
 
@@ -16,7 +16,7 @@ BMT 平台 SDK 遥测数据收集模块，提供统一的事件模型、批量�
 ## 📦 安装
 
 ```bash
-npm install @platform/sdk-telemetry
+npm install @wfynbzlx666/sdk-telemetry
 ```
 
 ## 🎯 核心模块
@@ -28,7 +28,7 @@ npm install @platform/sdk-telemetry
 #### 🚀 快速开始
 
 ```typescript
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 
 // 初始化遥测
 Telemetry.init({
@@ -71,7 +71,7 @@ Telemetry.trackError('javascript_error', 'TypeError: Cannot read property...', {
 #### 🔧 高级配置
 
 ```typescript
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 
 // 完整配置示例
 Telemetry.init({
@@ -306,7 +306,7 @@ import {
   createErrorEvent,
   createApiEvent,
   createPerfEvent 
-} from '@platform/sdk-telemetry'
+} from '@wfynbzlx666/sdk-telemetry'
 
 // 创建页面事件
 const pageEvent = createPageEvent('/dashboard', {
@@ -353,7 +353,7 @@ Telemetry.track(perfEvent)
 #### 📦 批量配置
 
 ```typescript
-import { TelemetryBatcher } from '@platform/sdk-telemetry'
+import { TelemetryBatcher } from '@wfynbzlx666/sdk-telemetry'
 
 // 创建自定义批处理器
 const batcher = new TelemetryBatcher({
@@ -432,7 +432,7 @@ Telemetry.trackEvent('security_alert', {
 #### 💾 存储配置
 
 ```typescript
-import { TelemetryStorage } from '@platform/sdk-telemetry'
+import { TelemetryStorage } from '@wfynbzlx666/sdk-telemetry'
 
 // 自定义存储配置
 const storage = new TelemetryStorage({
@@ -507,7 +507,7 @@ window.addEventListener('online', () => {
 ### 1. Web 应用用户行为分析
 
 ```typescript
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 
 class UserAnalytics {
   constructor() {
@@ -637,7 +637,7 @@ const analytics = new UserAnalytics()
 ```typescript
 // hooks/useTelemetry.ts
 import { useEffect, useCallback } from 'react'
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 
 export function useTelemetry() {
   // 页面跟踪 Hook
@@ -674,7 +674,7 @@ export function useTelemetry() {
 // components/TelemetryProvider.tsx
 import React, { createContext, useContext, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 import { useTelemetry } from '../hooks/useTelemetry'
 
 const TelemetryContext = createContext<ReturnType<typeof useTelemetry> | null>(null)
@@ -763,7 +763,7 @@ export function ProductCard({ product }: { product: any }) {
 ### 3. 电商应用事件跟踪
 
 ```typescript
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 
 class ECommerceAnalytics {
   constructor() {
@@ -967,7 +967,7 @@ export default ecommerceAnalytics
 ### 4. 错误监控和诊断
 
 ```typescript
-import { Telemetry } from '@platform/sdk-telemetry'
+import { Telemetry } from '@wfynbzlx666/sdk-telemetry'
 
 class ErrorMonitoring {
   private errorCounts: Map<string, number> = new Map()
