@@ -124,22 +124,6 @@ export { type Subscription }
  * - 频道权限控制
  * - 统计信息收集
  * 
- * @example
- * ```typescript
- * // 初始化并连接
- * await Realtime.connect({
- *   url: 'ws://localhost:3000',
- *   auth: () => getToken()
- * });
- * 
- * // 订阅消息
- * const subscription = Realtime.subscribe('chat', (message) => {
- *   console.log('收到消息:', message.payload);
- * });
- * 
- * // 发布消息
- * await Realtime.publish('chat', { text: 'Hello World!' });
- * ```
  */
 export class Realtime {
   // ============ 静态属性 ============
@@ -429,7 +413,7 @@ export class Realtime {
    */
   static subscribe<T = unknown>(
     topic: string, 
-    listener: MessageListener<T>
+    listener: MessageListener<T> // 订阅时传入一个listener，当有消息发送回来时，用于接收消息并进行处理
   ): Subscription {
     // 获取或创建主题对应的监听器集合
     let set = this.topicListeners.get(topic)
@@ -546,7 +530,7 @@ export class Realtime {
    * unsubscribe();
    * ```
    */
-  static onConnectionChange(listener: ConnectionListener): () => void {
+  static onConnectionChange(listener: ConnectionListener): () => void { // 传入一个回调函数，当连接状态变化时，会调用这个回调函数，用于接收状态信息，并返回一个取消监听的函数
     // 添加监听器到集合
     this.connectionListeners.add(listener)
     
