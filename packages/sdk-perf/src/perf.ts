@@ -146,10 +146,14 @@ export class Perf {
    * 
    * 初始化流程：
    * 1. 合并用户配置和默认配置
-   * 2. 根据配置启用Web Vitals监控
+   * 2. 智能启用Web Vitals监控（避免与Performance Observer重复）
    * 3. 启用Performance Observer详细监控
    * 4. 启用高级性能指标监控
    * 5. 启用内存泄漏检测（如果配置）
+   * 
+   * 优化策略：
+   * - 如果Performance Observer包含Web Vitals相关指标，则自动禁用独立的Web Vitals监控
+   * - 这样可以避免重复监控LCP、CLS、FID、FCP、TTFB等指标，提高性能
    * 
    * @example
    * ```typescript
@@ -193,8 +197,15 @@ export class Perf {
     }
     this.initialized = true
 
-    // 启用 Web Vitals 核心指标监控
-    if (this.options.autoEnableWebVitals) {
+    // 检查Performance Observer是否包含Web Vitals相关的条目类型
+    const webVitalsEntryTypes = ['paint', 'largest-contentful-paint', 'first-input', 'layout-shift', 'navigation']
+    const hasWebVitalsInObserver = this.options.enableDetailedMonitoring && 
+      this.options.observeEntryTypes && 
+      this.options.observeEntryTypes.some(type => webVitalsEntryTypes.includes(type))
+
+    // 优化策略：如果Performance Observer包含Web Vitals指标，则不启用独立的Web Vitals监控
+    // 这样可以避免重复监控相同的性能指标，提高性能并减少资源消耗
+    if (this.options.autoEnableWebVitals && !hasWebVitalsInObserver) {
       try { 
         this.enableWebVitals() 
       } catch (error) {
@@ -858,5 +869,60 @@ export class Perf {
    */
   static getOptions(): PerfOptions {
     return { ...this.options }
+  }
+
+  /**
+   * 获取性能监控状态信息
+   * 
+   * 返回当前性能监控系统的详细状态信息，包括各个监控模块的启用状态、
+   * 重复监控检测结果等。这对于调试和性能优化非常有用。
+   * 
+   * @returns 性能监控状态信息对象
+   * 
+   * 返回的状态信息包括：
+   * - isInitialized: 是否已初始化
+   * - webVitalsEnabled: Web Vitals是否启用
+   * - performanceObserverEnabled: Performance Observer是否启用
+   * - hasWebVitalsOverlap: 是否存在Web Vitals重复监控
+   * - observerCount: 当前活跃的观察器数量
+   * - monitoredEntryTypes: 被监控的性能条目类型
+   * 
+   * @example
+   * ```typescript
+   * const status = Perf.getMonitoringStatus()
+   * console.log('监控状态:', status)
+   * 
+   * if (status.hasWebVitalsOverlap) {
+   *   console.warn('检测到Web Vitals重复监控，建议优化配置')
+   * }
+   * ```
+   */
+  static getMonitoringStatus(): {
+    isInitialized: boolean
+    webVitalsEnabled: boolean
+    performanceObserverEnabled: boolean
+    hasWebVitalsOverlap: boolean
+    observerCount: number
+    monitoredEntryTypes: string[]
+  } {
+    const webVitalsEntryTypes = ['paint', 'largest-contentful-paint', 'first-input', 'layout-shift', 'navigation']
+    const hasWebVitalsInObserver = Boolean(this.options.enableDetailedMonitoring && 
+      this.options.observeEntryTypes && 
+      this.options.observeEntryTypes.some(type => webVitalsEntryTypes.includes(type)))
+    
+    // Web Vitals被启用的条件：autoEnableWebVitals为true且没有被Performance Observer覆盖
+    const webVitalsEnabled = Boolean(this.options.autoEnableWebVitals) && !hasWebVitalsInObserver
+    
+    // 检测是否存在重复监控：同时启用了Web Vitals和包含相同指标的Performance Observer
+    const hasWebVitalsOverlap = Boolean(this.options.autoEnableWebVitals) && hasWebVitalsInObserver
+
+    return {
+      isInitialized: this.initialized,
+      webVitalsEnabled,
+      performanceObserverEnabled: Boolean(this.options.enableDetailedMonitoring),
+      hasWebVitalsOverlap,
+      observerCount: this.observers.length,
+      monitoredEntryTypes: this.options.observeEntryTypes || []
+    }
   }
 }
