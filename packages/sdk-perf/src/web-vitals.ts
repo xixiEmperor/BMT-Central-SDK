@@ -297,19 +297,22 @@ function observeCLS(onMetric?: (metric: PerfMetric) => void): void {
  * - 减少JavaScript执行时间
  */
 function observeFID(onMetric?: (metric: PerfMetric) => void): void {
-  // 检查浏览器是否支持PerformanceObserver API
   if (!('PerformanceObserver' in window)) {
     console.warn('FID: 浏览器不支持PerformanceObserver')
     return
   }
   
   try {
+    let hasReported = false // 标记是否已经报告过
+    
     const observer = new PerformanceObserver((list) => {
+      if (hasReported) return // 只报告第一次
+      
       const entries = list.getEntries()
       
-      for (const entry of entries) {
-        const fidEntry = entry as any
-        // 计算输入延迟：从事件发生到浏览器开始处理的时间
+      // 只处理第一个有效的输入条目
+      if (entries.length > 0) {
+        const fidEntry = entries[0] as any
         const value = fidEntry.processingStart - fidEntry.startTime
         
         onMetric?.({
@@ -323,13 +326,15 @@ function observeFID(onMetric?: (metric: PerfMetric) => void): void {
           attrs: {
             processingStart: fidEntry.processingStart,
             startTime: fidEntry.startTime,
-            target: fidEntry.target?.tagName // 交互目标元素
+            target: fidEntry.target?.tagName
           }
         })
+        
+        hasReported = true
+        observer.disconnect() // 断开观察器，避免后续报告
       }
     })
     
-    // 开始观察首次输入事件
     observer.observe({ type: 'first-input', buffered: true })
   } catch (error) {
     console.warn('FID监控初始化失败:', error)
@@ -375,28 +380,27 @@ function observeFCP(onMetric?: (metric: PerfMetric) => void): void {
   try {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries()
-      
-      for (const entry of entries) {
-        // 查找首次内容绘制事件
-        if (entry.name === 'first-contentful-paint') {
-          const value = entry.startTime
-          
-          onMetric?.({
-            type: 'vitals',
-            name: 'FCP',
-            value: Math.round(value),
-            unit: 'ms',
-            rating: value > 3000 ? 'poor' : value > 1800 ? 'needs-improvement' : 'good',
-            ts: Date.now(),
-            source: 'web-vitals'
-          })
-          
-          // FCP只需记录一次，找到后可以停止观察
-          break
-        }
+
+      // paint事件通常只包含一个条目，直接检查第一个条目
+      if (entries.length > 0 && entries[0].name === 'first-contentful-paint') {
+        const entry = entries[0]
+        const value = entry.startTime
+
+        onMetric?.({
+          type: 'vitals',
+          name: 'FCP',
+          value: Math.round(value),
+          unit: 'ms',
+          rating: value > 3000 ? 'poor' : value > 1800 ? 'needs-improvement' : 'good',
+          ts: Date.now(),
+          source: 'web-vitals'
+        })
+
+        // FCP只需记录一次，找到后断开观察器
+        observer.disconnect()
       }
     })
-    
+
     // 观察绘制事件，包括FP和FCP
     observer.observe({ type: 'paint', buffered: true })
   } catch (error) {
@@ -437,41 +441,42 @@ function observeFCP(onMetric?: (metric: PerfMetric) => void): void {
  * - 升级网络带宽
  */
 function observeTTFB(onMetric?: (metric: PerfMetric) => void): void {
+  // 检查浏览器是否支持现代的PerformanceObserver API
+  if (!('PerformanceObserver' in window)) {
+    console.warn('TTFB: 浏览器不支持PerformanceObserver API')
+    return
+  }
+
   try {
-    // 获取导航性能条目
-    const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
-    
-    if (navEntry) {
-      // TTFB = 响应开始时间 - 导航开始时间
-      // 这包含了所有组件：重定向、DNS查询、连接建立、请求等待等
-      const value = navEntry.responseStart - navEntry.fetchStart
-      
-      onMetric?.({
-        type: 'vitals',
-        name: 'TTFB',
-        value: Math.round(value),
-        unit: 'ms',
-        rating: value > 1800 ? 'poor' : value > 800 ? 'needs-improvement' : 'good',
-        ts: Date.now(),
-        source: 'web-vitals',
-        attrs: {
-          fetchStart: navEntry.fetchStart,
-          responseStart: navEntry.responseStart,
-          // TTFB的各个组成部分
-          redirectTime: navEntry.redirectEnd - navEntry.redirectStart,
-          dnsLookup: navEntry.domainLookupEnd - navEntry.domainLookupStart,
-          tcpConnect: navEntry.connectEnd - navEntry.connectStart,
-          sslHandshake: navEntry.secureConnectionStart > 0 
-            ? navEntry.connectEnd - navEntry.secureConnectionStart 
-            : 0,
-          requestWait: navEntry.responseStart - navEntry.requestStart,
-          // 用于验证计算
-          totalTTFB: navEntry.responseStart - navEntry.fetchStart
-        }
-      })
-    } else {
-      console.warn('TTFB: 无法获取导航性能数据')
-    }
+    // 使用现代的PerformanceObserver API监听导航性能
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntriesByType('navigation') as PerformanceNavigationTiming[]
+
+      if (entries.length > 0) {
+        const navEntry = entries[0]
+
+        // TTFB = 响应开始时间 - 请求开始时间
+        // responseStart是收到第一个字节的时间点，fetchStart是请求发起的时间点
+        // 这准确反映了从发起请求到收到服务器响应的时间
+        const value = navEntry.responseStart - navEntry.fetchStart
+
+        onMetric?.({
+          type: 'vitals',
+          name: 'TTFB',
+          value: Math.round(value),
+          unit: 'ms',
+          rating: value > 1800 ? 'poor' : value > 800 ? 'needs-improvement' : 'good',
+          ts: Date.now(),
+          source: 'web-vitals'
+        })
+
+        // TTFB只需获取一次，获取后断开观察器
+        observer.disconnect()
+      }
+    })
+
+    // 开始观察导航性能，buffered: true表示获取历史数据
+    observer.observe({ type: 'navigation', buffered: true })
   } catch (error) {
     console.warn('TTFB监控初始化失败:', error)
   }

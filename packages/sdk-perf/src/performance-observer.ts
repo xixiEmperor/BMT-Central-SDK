@@ -1,21 +1,25 @@
 /**
  * Performance Observer - 性能条目观察器
- * 
+ *
  * 该模块提供了一个统一的性能监控接口，用于观察和处理各种类型的性能条目。
  * 支持的性能条目类型包括：
  * - navigation: 导航时间指标（DNS查询、TCP连接、页面加载等）
  * - resource: 资源加载性能（脚本、样式表、图片等）
  * - longtask: 长任务监控（超过50ms的任务）
- * - largest-contentful-paint: 最大内容绘制时间（LCP）
- * - first-input: 首次输入延迟（FID）
- * - layout-shift: 累积布局偏移（CLS）
- * - paint: 绘制时间（FP、FCP）
  * - measure/mark: 用户自定义时间标记和测量
  * - event: 事件处理时间
  * - memory: 内存使用情况监控
+ *
+ * 导航监控特性：
+ * - 优先使用PerformanceObserver进行实时监控
+ * - 自动去重机制防止重复监控
+ * - 备用机制确保在PerformanceObserver未触发时仍能收集导航数据
  */
 
 import type { PerfMetric, PerfMetricType, NavigationMetrics, ResourceMetrics, MemoryMetrics, LongTaskMetrics } from './types.js'
+
+// 导航条目去重标志 - 用于防止重复监控
+let navigationProcessed = false
 
 /**
  * 性能观察器配置选项
@@ -54,10 +58,14 @@ export interface PerformanceObserverOptions {
 export function createPerformanceObserver(options: PerformanceObserverOptions): PerformanceObserver | null {
   // 检查浏览器是否支持PerformanceObserver API
   if (typeof PerformanceObserver === 'undefined') return null
-  
+
   const { entryTypes, onMetric, enableDetailedMonitoring = true, memoryMonitorInterval = 30000 } = options
+
+  // 重置导航处理标志，为新的页面会话做准备
+  navigationProcessed = false
   
   // 创建性能观察器实例，设置条目处理回调
+  // 这里传入的一个函数实际上不会立即被触发，只是一个回调函数，当有新的性能条目时会被调用
   const po = new PerformanceObserver((list) => {
     const entries = list.getEntries()
     // 遍历处理每个性能条目
@@ -75,7 +83,7 @@ export function createPerformanceObserver(options: PerformanceObserverOptions): 
       startMemoryMonitoring(onMetric, memoryMonitorInterval)
     }
     
-    // 如果启用详细监控且包含导航监控，启动导航时间监控
+    // 如果启用详细监控且包含导航监控，启动导航时间监控（备用机制）
     if (enableDetailedMonitoring && entryTypes.includes('navigation')) {
       monitorNavigationTiming(onMetric)
     }
@@ -101,10 +109,6 @@ export function createPerformanceObserver(options: PerformanceObserverOptions): 
  * - navigation: 页面导航性能（DNS、TCP、SSL、请求响应等）
  * - resource: 资源加载性能（脚本、样式、图片等）
  * - longtask: 长任务监控（>50ms的阻塞任务）
- * - largest-contentful-paint: LCP指标
- * - first-input: FID指标
- * - layout-shift: CLS指标
- * - paint: 绘制时间（FP、FCP）
  * - measure/mark: 用户自定义测量
  * - event: 事件处理时间
  */
@@ -128,6 +132,8 @@ function processPerformanceEntry(
     case 'navigation':
       // 处理页面导航性能数据（仅在详细监控模式下）
       if (enableDetailedMonitoring) {
+        // 标记导航条目已通过PerformanceObserver处理
+        navigationProcessed = true
         processNavigationEntry(entry as PerformanceNavigationTiming, baseMetric, onMetric)
       }
       break
@@ -144,82 +150,7 @@ function processPerformanceEntry(
       processLongTaskEntry(entry as any, baseMetric, onMetric)
       break
       
-    case 'largest-contentful-paint':
-      // 处理最大内容绘制（LCP）指标
-      onMetric?.({
-        ...baseMetric,
-        type: 'largest-contentful-paint',
-        name: 'LCP', // 最大内容绘制时间
-        value: Math.round(entry.startTime),
-        unit: 'ms',
-        rating: getRating(entry.startTime, { good: 2500, poor: 4000 }), // LCP评级标准
-        attrs: {
-          ...baseMetric.attrs,
-          size: (entry as any).size, // 元素大小
-          id: (entry as any).id, // 元素ID
-          url: (entry as any).url // 资源URL（如果是图片）
-        }
-      })
-      break
-      
-    case 'first-input':
-      // 处理首次输入延迟（FID）指标
-      const fidEntry = entry as any
-      const fidValue = fidEntry.processingStart - fidEntry.fetchStart // 计算输入延迟时间
-      onMetric?.({
-        ...baseMetric,
-        type: 'first-input',
-        name: 'FID', // 首次输入延迟
-        value: Math.round(fidValue),
-        unit: 'ms',
-        rating: getRating(fidValue, { good: 100, poor: 300 }), // FID评级标准
-        attrs: {
-          ...baseMetric.attrs,
-          processingStart: fidEntry.processingStart, // 处理开始时间
-          target: fidEntry.target?.tagName // 目标元素标签名
-        }
-      })
-      break
-      
-    case 'layout-shift':
-      // 处理累积布局偏移（CLS）指标
-      const clsEntry = entry as any
-      // 只记录非用户输入引起的布局偏移
-      if (!clsEntry.hadRecentInput) {
-        onMetric?.({
-          ...baseMetric,
-          type: 'layout-shift',
-          name: 'CLS', // 累积布局偏移
-          value: Math.round(clsEntry.value * 1000) / 1000, // 保留3位小数
-          unit: 'score',
-          rating: getRating(clsEntry.value, { good: 0.1, poor: 0.25 }), // CLS评级标准
-          attrs: {
-            ...baseMetric.attrs,
-            hadRecentInput: clsEntry.hadRecentInput, // 是否由用户输入引起
-            sources: clsEntry.sources?.map((s: any) => ({
-              node: s.node?.tagName, // 发生偏移的元素
-              currentRect: s.currentRect, // 当前位置
-              previousRect: s.previousRect // 之前位置
-            }))
-          }
-        })
-      }
-      break
-      
-    case 'paint':
-      // 处理绘制时间指标（FP和FCP）
-      onMetric?.({
-        ...baseMetric,
-        type: 'paint',
-        name: entry.name, // 'first-paint'（首次绘制）或 'first-contentful-paint'（首次内容绘制）
-        value: Math.round(entry.startTime),
-        unit: 'ms',
-        // 只对FCP进行评级，FP不评级
-        rating: entry.name === 'first-contentful-paint' 
-          ? getRating(entry.startTime, { good: 1800, poor: 3000 }) // FCP评级标准
-          : undefined
-      })
-      break
+
       
     case 'measure':
       // 处理用户自定义测量指标
@@ -309,7 +240,6 @@ function processPerformanceEntry(
  * - domProcessing: DOM处理时间
  * - resourceLoading: 资源加载时间
  * - pageLoad: 页面完全加载时间
- * - TTFB: 首字节时间
  */
 function processNavigationEntry(
   entry: PerformanceNavigationTiming,
@@ -346,17 +276,6 @@ function processNavigationEntry(
         }
       })
     }
-  })
-
-  // 计算并发送TTFB（首字节时间）指标
-  const ttfb = entry.responseStart - entry.requestStart
-  onMetric?.({
-    ...baseMetric,
-    type: 'vitals', // 归类为核心性能指标
-    name: 'TTFB', // Time to First Byte
-    value: Math.round(ttfb),
-    unit: 'ms',
-    rating: getRating(ttfb, { good: 800, poor: 1800 }) // TTFB评级标准
   })
 }
 
@@ -471,8 +390,8 @@ function processLongTaskEntry(
  * 
  * 监控的内存指标包括：
  * - usedJSHeapSize: 已使用的JS堆大小
- * - totalJSHeapSize: 总JS堆大小
- * - jsHeapSizeLimit: JS堆大小限制
+ * - totalJSHeapSize: 总JS堆大小（已分配但可能未完全使用）
+ * - jsHeapSizeLimit: JS堆大小限制（V8引擎预设的上限，防止内存无限增长）
  * - memoryUsagePercent: 内存使用百分比
  * 
  * 注意：此功能仅在支持performance.memory的浏览器中可用（主要是Chrome）
@@ -524,20 +443,27 @@ function startMemoryMonitoring(
 }
 
 /**
- * 监控导航时间
- * 
- * 该函数负责在适当的时机收集页面导航性能数据。它会检查页面加载状态，
- * 并在页面完全加载后收集导航时间指标。
- * 
+ * 监控导航时间（备用机制）
+ *
+ * 该函数作为备用机制，在PerformanceObserver未触发导航条目处理时使用。
+ * 它会检查页面加载状态，并在页面完全加载后收集导航时间指标。
+ *
  * @param onMetric 指标回调函数，用于接收导航性能指标
- * 
+ *
  * 工作流程：
- * 1. 检查页面是否已完全加载
- * 2. 如果已加载，立即收集导航时间
- * 3. 如果未加载，等待load事件后收集
- * 4. 添加小延迟确保所有性能指标都可用
+ * 1. 检查是否已通过PerformanceObserver处理过导航条目
+ * 2. 如果已处理，跳过备用机制
+ * 3. 如果未处理，检查页面加载状态
+ * 4. 在页面完全加载后收集导航时间作为备用
+ * 5. 添加小延迟确保所有性能指标都可用
  */
 function monitorNavigationTiming(onMetric?: (metric: PerfMetric) => void): void {
+  // 如果已通过PerformanceObserver处理过导航条目，跳过备用机制
+  if (navigationProcessed) {
+    console.debug('Navigation timing already processed by PerformanceObserver, skipping fallback')
+    return
+  }
+
   // 检查页面加载状态，决定何时收集导航时间
   if (document.readyState === 'complete') {
     // 页面已完全加载，立即收集导航时间
@@ -552,13 +478,13 @@ function monitorNavigationTiming(onMetric?: (metric: PerfMetric) => void): void 
 }
 
 /**
- * 收集导航时间
- * 
- * 该函数从Performance API获取导航时间条目，并调用processNavigationEntry
- * 进行详细的导航性能分析。
- * 
+ * 收集导航时间（备用机制）
+ *
+ * 该函数作为备用机制从Performance API获取导航时间条目，当PerformanceObserver
+ * 未触发导航条目处理时使用。它会调用processNavigationEntry进行详细的导航性能分析。
+ *
  * @param onMetric 指标回调函数，用于接收处理后的导航指标
- * 
+ *
  * 注意：此函数假设页面已完全加载，导航时间数据已可用
  */
 function collectNavigationTiming(onMetric?: (metric: PerfMetric) => void): void {
@@ -566,6 +492,8 @@ function collectNavigationTiming(onMetric?: (metric: PerfMetric) => void): void 
     // 获取导航性能条目（通常只有一个）
     const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
     if (navEntry) {
+      // 标记导航条目已通过备用机制处理
+      navigationProcessed = true
       // 处理导航条目，生成详细的导航性能指标
       processNavigationEntry(navEntry, {
         ts: Date.now(),

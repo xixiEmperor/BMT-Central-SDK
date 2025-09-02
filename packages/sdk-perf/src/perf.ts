@@ -184,10 +184,6 @@ export class Perf {
       observeEntryTypes: [
         'navigation',                // 页面导航性能
         'resource',                  // 资源加载性能
-        'paint',                     // 绘制时间（FP、FCP）
-        'largest-contentful-paint',  // 最大内容绘制（LCP）
-        'first-input',              // 首次输入延迟（FID）
-        'layout-shift',             // 累积布局偏移（CLS）
         'longtask',                 // 长任务监控
         'measure',                  // 用户自定义测量
         'mark',                     // 用户自定义标记
@@ -197,15 +193,10 @@ export class Perf {
     }
     this.initialized = true
 
-    // 检查Performance Observer是否包含Web Vitals相关的条目类型
-    const webVitalsEntryTypes = ['paint', 'largest-contentful-paint', 'first-input', 'layout-shift', 'navigation']
-    const hasWebVitalsInObserver = this.options.enableDetailedMonitoring && 
-      this.options.observeEntryTypes && 
-      this.options.observeEntryTypes.some(type => webVitalsEntryTypes.includes(type))
-
-    // 优化策略：如果Performance Observer包含Web Vitals指标，则不启用独立的Web Vitals监控
-    // 这样可以避免重复监控相同的性能指标，提高性能并减少资源消耗
-    if (this.options.autoEnableWebVitals && !hasWebVitalsInObserver) {
+    // 简化策略：Web Vitals 和 Performance Observer 各司其职，避免重复监控
+    // Performance Observer 专注于原生 Performance API 条目（navigation、resource、longtask等）
+    // Web Vitals 专门处理核心 Web 性能指标（LCP、FID、CLS等）
+    if (this.options.autoEnableWebVitals) {
       try { 
         this.enableWebVitals() 
       } catch (error) {
