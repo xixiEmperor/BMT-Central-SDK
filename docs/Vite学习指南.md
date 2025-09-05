@@ -41,55 +41,278 @@ Vite（法语意为"快速"）是一个现代化的前端构建工具，由 Vue.
 - **通用插件接口**：在开发和构建之间共享 Rollup 兼容插件
 - **完全类型化的 API**：灵活的 API 和完整的 TypeScript 类型
 
-### 发展历程
-
-- **2020年4月**：Vite 1.0 发布，专为 Vue.js 设计
-- **2021年2月**：Vite 2.0 发布，框架无关，支持 React、Svelte 等
-- **2022年7月**：Vite 3.0 发布，改进开发体验和性能
-- **2022年12月**：Vite 4.0 发布，升级 Rollup 3.0
-- **2023年11月**：Vite 5.0 发布，支持 Rollup 4.0，改进性能
-
 ---
 
 ## 核心概念
 
 ### 1. ESM（ES Modules）优先
 
-Vite 基于浏览器原生 ES 模块支持，利用现代浏览器的能力：
+Vite 基于浏览器原生 ES 模块支持，彻底改变了传统构建工具的工作方式：
+
+#### 1.1 传统打包 vs Vite 方式
 
 ```javascript
-// 传统方式需要打包
-import { createApp } from 'vue'
-import App from './App.vue'
+// 传统打包工具（Webpack）的工作方式：
+// 1. 扫描所有模块依赖
+// 2. 将所有代码打包成 bundle
+// 3. 浏览器加载打包后的文件
 
-// Vite 直接利用浏览器的模块加载
+// Vite 的工作方式：
+// 1. 浏览器直接请求具体模块
+// 2. Vite 服务器按需编译返回
+// 3. 利用浏览器原生 import 语法
+import { createApp } from 'vue'  // 浏览器直接发起 HTTP 请求
+import App from './App.vue'      // Vite 实时编译 Vue SFC
+
 createApp(App).mount('#app')
+```
+
+#### 1.2 浏览器原生 ESM 支持
+
+```html
+<!-- 现代浏览器原生支持 -->
+<script type="module">
+  import { utils } from '/src/utils.js'  // 直接加载，无需打包
+  import config from '/src/config.json'  // JSON 模块
+  import styles from '/src/styles.css'   // CSS 模块
+</script>
+```
+
+#### 1.3 模块解析优势
+
+```javascript
+// 传统方式：需要解析整个依赖树
+Bundle: [main.js + utils.js + config.js + ...] → 一个大文件
+
+// Vite 方式：按需加载
+/src/main.js     → 实时编译返回
+/src/utils.js    → 缓存或实时编译
+/src/config.js   → 按需加载
 ```
 
 ### 2. 开发与生产分离
 
-- **开发环境**：使用原生 ESM + esbuild
-- **生产环境**：使用 Rollup 打包优化
+Vite 采用双模式架构，针对不同环境优化：
 
-### 3. 依赖预构建
-
-将 CommonJS 和 UMD 依赖转换为 ESM：
+#### 2.1 开发环境特点
 
 ```javascript
-// node_modules/lodash (CommonJS) -> .vite/deps/lodash.js (ESM)
+// 开发环境架构
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   浏览器     │◄──►│  Vite Dev   │◄──►│  esbuild    │
+│             │    │   Server    │    │  (转换器)   │
+│ 原生 ESM    │    │             │    │             │
+│ 按需加载    │    │ 请求拦截     │    │ 超快编译     │
+│ HMR 支持    │    │ 路径重写     │    │ TS/JSX 支持  │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+// 特点：
+// - 无需打包，启动速度极快（冷启动 < 1s）
+// - 按需编译，只处理当前访问的模块
+// - esbuild 编译速度比 Babel 快 10-100 倍
+```
+
+#### 2.2 生产环境特点
+
+```javascript
+// 生产环境架构
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   源代码     │───►│   Rollup    │───►│  优化输出    │
+│             │    │   构建器     │    │             │
+│ TS/Vue/CSS  │    │             │    │ 压缩代码     │
+│ 静态资源    │    │ Tree-shake  │    │ 代码分割     │
+│ 第三方依赖   │    │ 代码分割     │    │ 资源优化     │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+// 特点：
+// - 使用 Rollup 进行生产优化
+// - Tree-shaking 移除未使用代码
+// - 代码分割和懒加载
+// - 静态资源处理和压缩
+```
+
+### 3. 依赖预构建（Pre-bundling）
+
+Vite 的依赖预构建是性能优化的核心机制：
+
+#### 3.1 预构建原因
+
+```javascript
+// 问题：第三方依赖格式不统一
+node_modules/
+├── lodash/          (CommonJS 格式)
+├── react/           (UMD 格式)
+├── vue/             (多种格式混合)
+└── antd/            (包含数百个子模块)
+
+// 解决方案：预构建转换
+.vite/deps/
+├── lodash.js        (转换为 ESM)
+├── react.js         (转换为 ESM)
+├── vue.js           (转换为 ESM)
+└── antd.js          (合并为单个 ESM)
+```
+
+#### 3.2 预构建流程
+
+```javascript
+// 1. 扫描阶段 - 发现依赖
+import { debounce } from 'lodash'     // 发现 lodash 依赖
+import { Button } from 'antd'         // 发现 antd 依赖
+
+// 2. 预构建阶段 - 使用 esbuild
+esbuild({
+  entryPoints: ['lodash', 'antd'],
+  bundle: true,
+  format: 'esm',
+  outdir: '.vite/deps'
+})
+
+// 3. 路径重写阶段
 import { debounce } from 'lodash'
+// ↓ 重写为
+import { debounce } from '/@modules/lodash'
+
+// 4. 缓存机制
+// 基于 package-lock.json 和 vite.config.js 生成缓存 hash
+// 依赖变化时自动重新预构建
+```
+
+#### 3.3 预构建配置
+
+```javascript
+// vite.config.js
+export default {
+  optimizeDeps: {
+    // 强制预构建某些依赖
+    include: ['lodash-es', 'date-fns'],
+    
+    // 排除某些依赖的预构建
+    exclude: ['your-local-package'],
+    
+    // esbuild 选项
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  }
+}
 ```
 
 ### 4. 热模块替换（HMR）
 
-基于 ESM 的精确热更新：
+Vite 的 HMR 基于 ESM 实现精确更新：
+
+#### 4.1 HMR 工作原理
 
 ```javascript
-// 只更新改变的模块，不刷新整个页面
+// 1. 文件监听
+文件变化 → Vite 检测 → 分析依赖链 → 确定更新范围
+
+// 2. WebSocket 通信
+Vite Server ←─────→ Browser Client
+    │                    │
+    ├─ 发送更新通知        │
+    ├─ 发送新模块代码      │
+    └─ 发送 HMR 指令      │
+
+// 3. 模块热替换
+旧模块 → 卸载 → 新模块 → 重新执行 → 状态保持
+```
+
+#### 4.2 HMR API 详解
+
+```javascript
+// 基础 HMR API
 if (import.meta.hot) {
-  import.meta.hot.accept('./component.vue', (newModule) => {
+  // 接受自身更新
+  import.meta.hot.accept((newModule) => {
     // 更新逻辑
+    console.log('模块已更新:', newModule)
   })
+  
+  // 接受依赖更新
+  import.meta.hot.accept('./dependency.js', (newDep) => {
+    // 处理依赖更新
+    updateDependency(newDep)
+  })
+  
+  // 模块卸载时的清理
+  import.meta.hot.dispose((data) => {
+    // 保存状态到 data
+    data.state = currentState
+    // 清理副作用
+    clearTimeout(timer)
+  })
+  
+  // 获取上次的数据
+  if (import.meta.hot.data.state) {
+    currentState = import.meta.hot.data.state
+  }
+}
+```
+
+#### 4.3 框架集成示例
+
+```javascript
+// Vue SFC HMR
+// 组件更新时保持状态
+<template>
+  <div>{{ count }}</div>
+  <button @click="increment">+</button>
+</template>
+
+<script>
+export default {
+  data() {
+    return { count: 0 }
+  },
+  methods: {
+    increment() { this.count++ }
+  }
+}
+
+// 模板更新 → 重新渲染，状态保持
+// 脚本更新 → 重新实例化，状态重置
+// 样式更新 → 直接替换，无需重新渲染
+</script>
+
+// React Fast Refresh
+function Counter() {
+  const [count, setCount] = useState(0)
+  
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={() => setCount(c => c + 1)}>+</button>
+    </div>
+  )
+}
+
+// 组件更新时：
+// - 保持 Hook 状态
+// - 保持组件树结构
+// - 只更新变化的部分
+```
+
+#### 4.4 HMR 边界和传播
+
+```javascript
+// HMR 更新传播机制
+A.js (接受更新) ←─ B.js ←─ C.js (文件变化)
+  │
+  └─ 更新停止，不向上传播
+
+A.js (不接受) ←─ B.js ←─ C.js (文件变化)
+  │                │
+  └─ 向上传播 ←─────┘
+  
+// 如果没有模块接受更新 → 页面刷新
+
+// 设置 HMR 边界
+if (import.meta.hot) {
+  import.meta.hot.accept() // 接受自身更新，阻止向上传播
 }
 ```
 
@@ -707,79 +930,478 @@ npm run build && npm run preview
 
 # 分析构建结果
 npm run build -- --mode analyze
+
+# 构建时指定环境
+npm run build -- --mode production
+npm run build -- --mode staging
+
+# 监听模式构建（用于开发库）
+npm run build -- --watch
 ```
 
-### 构建配置
+### 构建配置详解
+
+#### 基础配置选项
 
 ```typescript
 export default defineConfig({
   build: {
-    // 输出目录
+    // ==================== 输出配置 ====================
+    
+    /** 
+     * 输出目录
+     * @default 'dist'
+     * 相对于项目根目录的构建输出目录
+     */
     outDir: 'dist',
     
-    // 静态资源目录
+    /** 
+     * 静态资源目录
+     * @default 'assets'  
+     * 在输出目录下存放静态资源的子目录名
+     * 最终路径: outDir/assetsDir/
+     */
     assetsDir: 'assets',
     
-    // 内联资源大小限制（字节）
+    /** 
+     * 构建前清空输出目录
+     * @default true
+     * 防止旧文件残留影响新构建
+     */
+    emptyOutDir: true,
+    
+    // ==================== 资源处理 ====================
+    
+    /** 
+     * 内联资源大小限制（字节）
+     * @default 4096 (4KB)
+     * 小于此大小的资源会被内联为 base64 URL
+     * 减少 HTTP 请求，但会增加 bundle 大小
+     */
     assetsInlineLimit: 4096,
     
-    // CSS 代码分割
+    /** 
+     * 静态资源处理
+     * 可以是数字（字节）或函数
+     */
+    assetsInlineLimit: (filePath, content) => {
+      // 自定义内联逻辑
+      if (filePath.includes('icons')) {
+        return content.length < 8192 // 图标文件 8KB 以下内联
+      }
+      return content.length < 4096 // 其他文件 4KB 以下内联
+    },
+    
+    // ==================== 代码分割 ====================
+    
+    /** 
+     * CSS 代码分割
+     * @default true
+     * true: 每个异步 chunk 的 CSS 提取到独立文件
+     * false: 所有 CSS 提取到一个文件
+     */
     cssCodeSplit: true,
     
-    // 生成 sourcemap
-    sourcemap: true,
+    /** 
+     * 动态导入的 polyfill
+     * @default true
+     * 为不支持动态导入的浏览器提供 polyfill
+     */
+    dynamicImportVarsOptions: {
+      warnOnError: true,
+      exclude: [/node_modules/]
+    },
     
-    // 压缩器
-    minify: 'terser', // 'terser' | 'esbuild' | false
+    // ==================== 压缩与优化 ====================
     
-    // Terser 选项
+    /** 
+     * 代码压缩器
+     * @default 'esbuild'
+     * 'terser': 更小的输出，但构建较慢
+     * 'esbuild': 更快的构建，输出稍大
+     * false: 不压缩
+     */
+    minify: 'terser',
+    
+    /** 
+     * Terser 压缩选项
+     * 仅在 minify: 'terser' 时生效
+     */
     terserOptions: {
       compress: {
+        // 移除 console 语句
         drop_console: true,
-        drop_debugger: true
+        // 移除 debugger 语句  
+        drop_debugger: true,
+        // 移除未使用的函数
+        unused: true,
+        // 移除死代码
+        dead_code: true,
+        // 移除无效的代码
+        side_effects: false
+      },
+      mangle: {
+        // 混淆变量名
+        properties: {
+          // 混淆属性名（谨慎使用）
+          regex: /^_/
+        }
+      },
+      format: {
+        // 移除注释
+        comments: false
       }
     },
     
-    // 构建前清空输出目录
-    emptyOutDir: true,
+    /** 
+     * esbuild 压缩选项
+     * 仅在 minify: 'esbuild' 时生效
+     */
+    esbuildOptions: {
+      drop: ['console', 'debugger'],
+      legalComments: 'none'
+    },
     
-    // 报告压缩大小
+    // ==================== 调试与分析 ====================
+    
+    /** 
+     * 生成 sourcemap
+     * @default false
+     * true: 生成 .map 文件
+     * 'inline': 内联到文件中
+     * 'hidden': 生成但不在文件中引用
+     */
+    sourcemap: true, // 或 'inline' | 'hidden'
+    
+    /** 
+     * 报告压缩后大小
+     * @default true
+     * 构建时显示 gzip 压缩后的文件大小
+     * 大型项目可设为 false 加快构建
+     */
     reportCompressedSize: false,
     
-    // chunk 大小警告限制
+    /** 
+     * chunk 大小警告限制（KB）
+     * @default 500
+     * 超过此大小会显示警告
+     */
     chunkSizeWarningLimit: 500,
     
-    // Rollup 选项
+    // ==================== 目标与兼容性 ====================
+    
+    /** 
+     * 构建目标
+     * @default 'modules'
+     * 'modules': 支持原生 ES 模块的浏览器
+     * 'esnext': 最新 ES 特性
+     * ['es2015', 'safari11']: 多目标构建
+     */
+    target: 'modules', // 或 'es2015' | 'es2017' | 'es2018' | 'es2019' | 'es2020' | 'esnext'
+    
+    /** 
+     * 多目标构建
+     * 为不同浏览器生成不同的 bundle
+     */
+    target: ['es2015', 'safari11'],
+    
+    // ==================== 高级选项 ====================
+    
+    /** 
+     * 构建时的 polyfill 注入
+     * @default true
+     */
+    polyfillModulePreload: true,
+    
+    /** 
+     * 模块预加载的 polyfill
+     * 为不支持 modulepreload 的浏览器提供支持
+     */
+    modulePreload: {
+      polyfill: true,
+      resolveDependencies: (filename, deps) => {
+        // 自定义依赖解析逻辑
+        return deps.filter(dep => !dep.includes('chunk-'))
+      }
+    },
+    
+    /** 
+     * 实验性功能：CSS 文件名哈希
+     * @default false
+     */
+    cssMinify: true, // 或 'esbuild' | 'lightningcss'
+    
+    // ==================== Rollup 配置 ====================
+    
     rollupOptions: {
+      // 输入配置
       input: {
         main: resolve(__dirname, 'index.html'),
-        admin: resolve(__dirname, 'admin/index.html')
+        admin: resolve(__dirname, 'admin/index.html'),
+        mobile: resolve(__dirname, 'mobile/index.html')
       },
+      
+      // 外部依赖（不打包的依赖）
+      external: ['vue', 'react', 'lodash'],
+      
+      // 输出配置
       output: {
-        // 手动分包
+        // ==================== 手动分包策略 ====================
+        
+        /** 
+         * 手动分包配置
+         * 将特定模块分离到独立的 chunk
+         */
         manualChunks: {
-          vendor: ['vue', 'vue-router'],
-          utils: ['lodash', 'axios']
+          // 基础框架
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          
+          // 工具库
+          'utils': ['lodash', 'dayjs', 'axios'],
+          
+          // UI 组件库
+          'ui-vendor': ['element-plus', 'ant-design-vue'],
+          
+          // 图表库
+          'charts': ['echarts', 'chart.js', 'd3']
         },
         
-        // 自定义文件名
-        chunkFileNames: 'js/[name]-[hash].js',
-        entryFileNames: 'js/[name]-[hash].js',
+        /** 
+         * 动态分包函数
+         * 更灵活的分包策略
+         */
+        manualChunks: (id) => {
+          // 第三方依赖
+          if (id.includes('node_modules')) {
+            // 大型库独立分包
+            if (id.includes('echarts')) return 'echarts'
+            if (id.includes('element-plus')) return 'element-plus'
+            if (id.includes('ant-design-vue')) return 'antd'
+            
+            // 小型工具库合并
+            if (id.includes('lodash') || id.includes('dayjs')) return 'utils'
+            
+            // 其他第三方库
+            return 'vendor'
+          }
+          
+          // 业务代码按目录分包
+          if (id.includes('/src/components/')) return 'components'
+          if (id.includes('/src/utils/')) return 'utils'
+          if (id.includes('/src/views/admin/')) return 'admin'
+        },
+        
+        // ==================== 文件命名策略 ====================
+        
+        /** 
+         * 入口文件命名
+         * [name]: 入口名称
+         * [hash]: 基于内容的哈希
+         * [format]: 输出格式 (es, cjs, umd, iife)
+         */
+        entryFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId
+          if (facadeModuleId?.includes('admin')) {
+            return 'admin/[name].[hash].js'
+          }
+          return 'js/[name].[hash].js'
+        },
+        
+        /** 
+         * 代码块文件命名
+         * 用于懒加载和分包的 chunk
+         */
+        chunkFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId
+          
+          // 按功能模块分目录
+          if (facadeModuleId?.includes('/admin/')) {
+            return 'js/admin/[name].[hash].js'
+          }
+          if (facadeModuleId?.includes('/mobile/')) {
+            return 'js/mobile/[name].[hash].js'
+          }
+          
+          return 'js/chunks/[name].[hash].js'
+        },
+        
+        /** 
+         * 静态资源文件命名
+         * 处理图片、字体、CSS 等资源
+         */
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name.split('.')
-          const extType = info[info.length - 1]
-          if (/\.(mp4|webm|ogg|mp3|wav|flac|aac)(\?.*)?$/i.test(assetInfo.name)) {
-            return `media/[name]-[hash][extname]`
+          const extType = info[info.length - 1].toLowerCase()
+          
+          // 图片资源
+          if (/^(png|jpe?g|gif|svg|ico|webp|avif)$/i.test(extType)) {
+            return `images/[name].[hash][extname]`
           }
-          if (/\.(png|jpe?g|gif|svg)(\?.*)?$/i.test(assetInfo.name)) {
-            return `images/[name]-[hash][extname]`
+          
+          // 视频音频
+          if (/^(mp4|webm|ogg|mp3|wav|flac|aac|m4a)$/i.test(extType)) {
+            return `media/[name].[hash][extname]`
           }
+          
+          // 字体文件
+          if (/^(woff2?|eot|ttf|otf)$/i.test(extType)) {
+            return `fonts/[name].[hash][extname]`
+          }
+          
+          // CSS 文件
           if (extType === 'css') {
-            return `styles/[name]-[hash][extname]`
+            // 按来源分目录
+            if (assetInfo.name?.includes('vendor')) {
+              return `styles/vendor/[name].[hash][extname]`
+            }
+            return `styles/[name].[hash][extname]`
           }
-          return `assets/[name]-[hash][extname]`
+          
+          // 其他文件
+          return `assets/[name].[hash][extname]`
+        },
+        
+        // ==================== 输出格式配置 ====================
+        
+        /** 
+         * 输出格式
+         * 'es': ES 模块
+         * 'cjs': CommonJS
+         * 'umd': UMD 格式
+         * 'iife': 立即执行函数
+         */
+        format: 'es',
+        
+        /** 
+         * 全局变量名（UMD/IIFE 格式需要）
+         */
+        name: 'MyApp',
+        
+        /** 
+         * 外部依赖的全局变量映射
+         * 用于 UMD 格式
+         */
+        globals: {
+          vue: 'Vue',
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          lodash: '_',
+          axios: 'axios'
+        },
+        
+        // ==================== 高级输出选项 ====================
+        
+        /** 
+         * 代码分割时的导入函数名
+         * @default 'import'
+         */
+        dynamicImportFunction: 'import',
+        
+        /** 
+         * 是否保留模块结构
+         * @default false
+         */
+        preserveModules: false,
+        
+        /** 
+         * 保留模块时的根目录
+         */
+        preserveModulesRoot: 'src',
+        
+        /** 
+         * 输出时的缩进
+         * @default true
+         */
+        indent: '  ', // 或 false | true
+        
+        /** 
+         * 是否生成 sourcemap
+         * 会覆盖顶层的 sourcemap 配置
+         */
+        sourcemap: true,
+        
+        /** 
+         * sourcemap 文件的基础路径
+         */
+        sourcemapBaseUrl: 'https://cdn.example.com/',
+        
+        /** 
+         * 是否在文件中包含 sourcemap 引用
+         * @default true
+         */
+        sourcemapExcludeSources: false
+      },
+      
+      // ==================== 插件配置 ====================
+      
+      plugins: [
+        // Rollup 插件（仅构建时使用）
+        // 注意：这些插件只在构建时生效，不影响开发服务器
+      ],
+      
+      // ==================== 监听选项 ====================
+      
+      watch: {
+        // 监听的文件/目录
+        include: 'src/**',
+        exclude: 'node_modules/**',
+        
+        // 监听选项
+        buildDelay: 100,
+        chokidar: {
+          usePolling: false,
+          interval: 100
         }
       }
+    }
+  }
+})
+```
+
+#### 环境特定配置
+
+```typescript
+// 根据环境调整构建配置
+export default defineConfig(({ command, mode }) => {
+  const isProduction = mode === 'production'
+  const isStaging = mode === 'staging'
+  const isDevelopment = command === 'serve'
+  
+  return {
+    build: {
+      // 开发构建：快速构建，保留调试信息
+      ...(isDevelopment && {
+        minify: 'esbuild',
+        sourcemap: true,
+        reportCompressedSize: false
+      }),
+      
+      // 预发布环境：平衡性能和调试
+      ...(isStaging && {
+        minify: 'terser',
+        sourcemap: 'hidden',
+        terserOptions: {
+          compress: {
+            drop_console: false, // 保留 console
+            drop_debugger: true
+          }
+        }
+      }),
+      
+      // 生产环境：最大优化
+      ...(isProduction && {
+        minify: 'terser',
+        sourcemap: false,
+        reportCompressedSize: true,
+        terserOptions: {
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+            pure_funcs: ['console.log', 'console.info']
+          }
+        }
+      })
     }
   }
 })

@@ -1036,16 +1036,24 @@ if (process.env.NODE_ENV === 'development') {
 ## 📝 更新日志
 
 ### v0.0.1 (2025-08-15)
-- 🎉 首次发布
-- ✅ 完整的 Web Vitals 监控
-- ✅ Performance Observer 支持
-- ✅ 高级性能指标监控
-- ✅ 用户自定义性能标记
-- ✅ 内存泄漏检测
-- ✅ TypeScript 完整支持
+- 首次发布
+- 完整的 Web Vitals 监控
+- erformance Observer 支持
+- 高级性能指标监控
+- 用户自定义性能标记
+- 内存泄漏检测
+- TypeScript 完整支持
 
+### v0.0.2
 
+### v0.0.3
 
+### v0.0.4
+
+### v1.0.0 (2025-9-5)
+- 对整个SDK进行了一个大的优化
+- web-vitals只负责LCP，FCP，FID，CLS，TTFB的监控
+- 开启detailMonitoring后监测的数据不再包裹web-vitals里面的数据，防止重复监测，现在他专注于监测导航相关指标，内存泄漏监控等高级功能
 ---
 
 <div align="center">
