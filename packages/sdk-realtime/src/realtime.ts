@@ -377,13 +377,13 @@ export class Realtime {
   static disconnect(): void {
     // 停止心跳定时器
     this.stopHeartbeat()
-    
+
     // 断开Socket连接并清理引用
     if (this.socket) {
-      this.socket.disconnect()
+      (this.socket as any).disconnect(true) // true 参数禁用重连
       this.socket = null
     }
-    
+
     // 更新状态并通知监听器
     this.status = 'disconnected'
     this.emitConnection()
