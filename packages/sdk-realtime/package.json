@@ -1,6 +1,6 @@
 {
   "name": "@wfynbzlx666/sdk-realtime",
-  "version": "0.0.0",
+  "version": "0.0.2",
   "description": "BMT 平台 SDK 实时通信 - Socket.IO 可靠通道、心跳重连、ack 机制",
   "type": "module",
   "main": "./dist/index.js",
@@ -35,8 +35,8 @@
     "directory": "packages/sdk-realtime"
   },
   "dependencies": {
-    "@wfynbzlx666/sdk-core": "0.0.1",
-    "@wfynbzlx666/sdk-http": "0.0.2",
+    "@wfynbzlx666/sdk-core": "0.0.2",
+    "@wfynbzlx666/sdk-http": "0.0.3",
     "socket.io-client": "^4.7.4"
   },
   "devDependencies": {

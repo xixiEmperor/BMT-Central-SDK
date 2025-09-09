@@ -72,7 +72,18 @@
 // ============ 核心类型导出 ============
 // 导出所有类型定义，提供完整的TypeScript支持
 
-export type * from './types.js'
+export type {
+  MessageType,
+  ConnectionStatus,
+  RealtimeMessage,
+  EventMessage,
+  ErrorMessage,
+  SubscribeMessage,
+  PublishMessage,
+  MessageListener,
+  ConnectionListener,
+  Subscription
+} from './types.js'
 
 // ============ 主要API导出 ============
 // 导出核心实时通信类和相关类型
@@ -87,25 +98,8 @@ export { Realtime } from './realtime.js'
  * 实时通信相关类型定义
  */
 export type { 
-  RealtimeOptions,     // 配置选项
-  RealtimeMessage,     // 消息接口  
-  Subscription         // 订阅控制对象
+  RealtimeOptions      // 配置选项
 } from './realtime.js'
-
-// ============ 基础设施组件导出 ============
-// 导出底层组件的类型定义，供高级用户使用
-
-/**
- * 连接管理器接口
- * 用于自定义连接管理实现
- */
-export type { ConnectionManager } from './connection.js'
-
-/**
- * 消息处理器接口
- * 用于自定义消息处理逻辑
- */
-export type { MessageHandler } from './message-handler.js'
 
 // ============ 后端API集成 ============
 // 重新导出sdk-http中与实时通信相关的API接口，
