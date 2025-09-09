@@ -35,7 +35,7 @@ import { Realtime } from '@wfynbzlx666/sdk-realtime'
 
 // 初始化实时通信
 Realtime.init({
-  url: 'ws://localhost:5000',
+  url: 'ws://localhost:5000', // 自己的ws地址
   auth: () => 'your-access-token' // 认证令牌提供者
 })
 
@@ -982,10 +982,9 @@ class SubscriptionManager {
 }
 ```
 
-## 🤝 贡献指南
+## 更新日志
+v0.0.1 （2025-9-9）
+- 首次发布
 
-欢迎提交 Issue 和 Pull Request！
-
-## 📄 许可证
-
-MIT License
+v0.0.2  (2025-9-9)
+- 将类型进行导出，供用户进行类型检查

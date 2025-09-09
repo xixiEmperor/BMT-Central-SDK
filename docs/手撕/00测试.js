@@ -85,4 +85,28 @@ class MyPromise {
     catch(onError) {
         return this.then(_, onError)
     }
+
+    static all(promises) {
+        let results = []
+        let total = promises.length
+        let completedCount = 0
+
+        if (total === 0) {
+            resolve(results)
+            return
+        }
+
+        return new MyPromise((resolve, reject) => {
+            promises.forEach((p, index) => {
+                p.then(value => {
+                    results[index] = value
+                    completedCount++
+
+                    if (completedCount === total) {
+                        resolve(results)
+                    }
+                }).catch((error) => reject(error))
+            });
+        })
+    }
 }
