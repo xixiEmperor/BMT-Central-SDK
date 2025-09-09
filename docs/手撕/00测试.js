@@ -85,4 +85,76 @@ class MyPromise {
     catch(onError) {
         return this.then(_, onError)
     }
+
+    static all(promises) {
+        return new MyPromise((resolve, reject) => {
+            let results = []
+            let total = promises.length
+            let compliteCount = 0
+
+            if(total === 0){
+                resolve(results)
+                return
+            }
+
+            promises.forEach((p, index) => {
+                MyPromise.resolve(p.then(value => {
+                    results[index] = value
+                    compliteCount++
+
+                    if(compliteCount === total){
+                        resolve(results)
+                        return
+                    }
+                }).catch(error => reject(error)))
+            })
+        })
+    }
+    
+    static race(promises) {
+        return new MyPromise((resolve, reject) => {
+            promises.forEach(p => {
+                MyPromise.resolve(p).then(value => resolve(value)).catch(error => reject(error))
+            })
+        })
+    }
+
+    static allSettled(promises) {
+        return new Promise((resolve) => {
+            let results = []
+            let completedCount = 0
+            let total = promises.length
+
+            if(total === 0) {
+                resolve(results)
+                return
+            }
+
+            promises.forEach((p, index) => {
+                Promise.resolve(p).then(value => {
+                    results[index] = {
+                        statu: 'fulfilled',
+                        value
+                    }
+                    completedCount++
+
+                    if(completedCount === total){
+                        resolve(results)
+                        return
+                    }
+                }).catch(error => {
+                    results[index] = {
+                        statu: 'rejected',
+                        error
+                    }
+                    completedCount++
+
+                    if(completedCount === total){
+                        resolve(results)
+                        return
+                    }
+                })
+            })
+        })
+    }
 }
