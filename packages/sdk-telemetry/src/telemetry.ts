@@ -24,7 +24,6 @@ import type { PerfMetric } from '@wfynbzlx666/sdk-perf'
 import { createTelemetryStorage, type TelemetryStorage } from './storage.js'
 import { generateId, sleep } from '@wfynbzlx666/sdk-core'
 import { TelemetryAPI } from '@wfynbzlx666/sdk-http'
-import { sdkManager } from '@wfynbzlx666/sdk-core'
 
 /**
  * 遥测配置选项接口

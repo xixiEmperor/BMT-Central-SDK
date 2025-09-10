@@ -275,6 +275,11 @@ export class Realtime {
         auth: token ? { 
           token: token.startsWith('Bearer ') ? token : `Bearer ${token}` 
         } : undefined,
+        // 用户信息通过query传递，需要序列化为字符串
+        query: {
+          userId: this.options!.user.userId,
+          userRole: this.options!.user.user_role
+        },
       })
 
       const s = this.socket
@@ -287,6 +292,7 @@ export class Realtime {
        */
       s.on('connect', () => {
         console.log('🔗 Socket连接建立, ID:', s.id)
+        console.log('可以进行本地热更新调试了')
         this.status = 'connected'
     
         this.emitConnection()
@@ -764,7 +770,10 @@ export class Realtime {
   // 所以只要订阅了主题，就可以收到消息，并且可以根据服务端发来的消息进行一些操作
   private static dispatchMessage<T = any>(msg: EventMessage<T>): void {
     const set = this.topicListeners.get(msg.topic)
-    if (!set || set.size === 0) return
+    if (!set || set.size === 0) {
+      console.log('您发送的主题不存在')
+      return
+    }
     for (const l of set) {
       try { (l as MessageListener<T>)(msg) } catch { /* 监听器异常不影响其他订阅者 */ }
     }

@@ -20,6 +20,8 @@
 3. **主题系统**：内置多套主题，支持自定义主题配置
 4. **配置管理**：可视化配置界面，支持拖拽布局和参数调整
 5. **插件系统**：支持自定义插件扩展功能
+6. **DOM挂载系统**：支持Portal、Shadow DOM、浮动面板等多种挂载方式
+7. **性能隔离系统**：确保监控面板不影响用户应用的真实性能
 
 ### 2.3 Page Details
 | Page Name | Module Name | Feature description |
@@ -77,3 +79,118 @@ graph TD
 
 ### 4.3 Responsiveness
 桌面优先设计，完全支持移动端适配，包括触摸手势优化和响应式布局调整。在移动端自动调整组件尺寸和交互方式。
+
+## 5. Technical Features
+
+### 5.1 DOM挂载方案
+**三种挂载方式满足不同场景需求：**
+
+1. **Portal模式**
+   - 用户指定容器，SDK渲染到指定位置
+   - 适用场景：集成到现有页面布局中
+   - 使用方式：`BMTDashboard.mount('#container', options)`
+
+2. **Shadow DOM隔离模式**
+   - 完全样式隔离，不会被用户CSS影响
+   - 适用场景：需要完全独立的监控面板
+   - 技术优势：避免样式冲突，确保视觉一致性
+
+3. **浮动面板模式**
+   - 可拖拽、可最小化的悬浮监控面板
+   - 适用场景：开发调试、生产环境快速监控
+   - 使用方式：`BMTDashboard.createFloating(options)`
+
+### 5.2 性能隔离保证
+**零性能影响承诺：**
+
+| 性能指标 | 限制阈值 | 保证措施 |
+|---------|---------|---------|
+| CPU使用率 | ≤ 10% | 时间切片 + requestIdleCallback |
+| 内存使用 | ≤ 50MB | 循环缓冲区 + 虚拟滚动 + 定期清理 |
+| 渲染时间 | ≤ 16ms/帧 | 帧率限制 + 自动降级 |
+| 网络请求 | ≤ 5个/秒 | 请求合并 + 批处理 |
+
+**自动性能调优机制：**
+- 实时监控自身性能影响
+- 超出阈值自动进入低性能模式
+- 动态调整更新频率和数据量
+- Web Worker处理重计算任务
+
+### 5.3 与BMT-Central-SDK集成优势
+
+**数据源无缝集成：**
+- 自动集成`@wfynbzlx666/sdk-perf`的性能数据
+- 复用`@wfynbzlx666/sdk-telemetry`的事件追踪
+- 利用`@wfynbzlx666/sdk-realtime`的实时通信
+- 共享`@wfynbzlx666/sdk-http`的网络能力
+
+**统一开发体验：**
+- 相同的构建工具链和发布流程
+- 统一的TypeScript配置和代码规范
+- 版本同步，避免兼容性问题
+- 一站式SDK解决方案
+
+## 6. Integration Examples
+
+### 6.1 最简集成示例
+```typescript
+import { BMTDashboard } from '@wfynbzlx666/sdk-dashboard'
+
+// 一行代码集成监控面板
+BMTDashboard.mount('#dashboard', {
+  config: {
+    theme: { mode: 'dark' },
+    dataSource: { type: 'rest', endpoint: '/api/metrics' }
+  }
+})
+```
+
+### 6.2 高级配置示例
+```typescript
+BMTDashboard.createFloating({
+  position: 'bottom-right',
+  minimizable: true,
+  config: {
+    layout: [
+      { id: 'perf', component: 'MetricCard', x: 0, y: 0, w: 4, h: 2 },
+      { id: 'errors', component: 'ChartContainer', x: 4, y: 0, w: 8, h: 4 }
+    ]
+  },
+  performance: {
+    maxCPUUsage: 0.05, // 限制5% CPU使用
+    enableAutoDegrade: true
+  },
+  mount: {
+    mode: 'shadow-dom',
+    isolated: true
+  }
+})
+```
+
+### 6.3 与现有监控系统集成
+```typescript
+// 支持多种数据源
+BMTDashboard.mount('#dashboard', {
+  config: {
+    dataSource: [
+      { type: 'rest', endpoint: '/api/prometheus/metrics' },
+      { type: 'websocket', endpoint: 'ws://grafana.com/live' },
+      { type: 'graphql', endpoint: '/graphql' }
+    ]
+  }
+})
+```
+
+## 7. Success Metrics
+
+### 7.1 技术指标
+- **集成时间** < 5分钟（从安装到显示第一个图表）
+- **包体积** < 500KB（gzipped）
+- **性能影响** < 5%（CPU和内存使用）
+- **浏览器兼容性** 支持Chrome 60+、Firefox 58+、Safari 12+
+
+### 7.2 用户体验指标
+- **学习成本** < 30分钟（从零基础到熟练使用）
+- **定制化程度** 支持90%以上的常见监控场景
+- **稳定性** 99.9%运行时可用性
+- **社区活跃度** 目标1000+ GitHub stars

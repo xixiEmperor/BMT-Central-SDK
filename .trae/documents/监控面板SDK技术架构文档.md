@@ -41,15 +41,87 @@ graph TD
 
 ## 2. Technology Description
 
+### 2.1 核心技术栈
 * Frontend: React\@18 + TypeScript\@5 + Vite\@5 + TailwindCSS\@3
-
 * Charts: ECharts\@5 + React-ECharts
-
 * State Management: Zustand\@4
-
 * Build Tool: Rollup\@4 (用于SDK打包)
-
 * Testing: Vitest + React Testing Library
+
+### 2.2 DOM挂载技术方案
+
+**采用Portal + Shadow DOM混合方案**
+
+```typescript
+class BMTDashboard {
+  private shadowRoot: ShadowRoot
+  private container: HTMLElement
+  
+  static mount(selector: string, options: DashboardOptions) {
+    const container = document.querySelector(selector)
+    
+    // 创建Shadow DOM实现样式隔离
+    const shadowRoot = container.attachShadow({ mode: 'closed' })
+    
+    // 在Shadow DOM中渲染React组件
+    const dashboardElement = document.createElement('div')
+    shadowRoot.appendChild(dashboardElement)
+    
+    // 注入隔离的样式
+    const styles = document.createElement('style')
+    styles.textContent = isolatedCSS
+    shadowRoot.appendChild(styles)
+    
+    // 渲染React组件到Shadow DOM
+    ReactDOM.render(<Dashboard {...options} />, dashboardElement)
+  }
+}
+```
+
+**支持的挂载方式**
+1. **Portal模式**：用户指定容器，SDK渲染到指定位置
+2. **Shadow DOM隔离**：完全样式隔离，不影响用户页面
+3. **浮动面板模式**：可最小化的悬浮监控面板
+
+### 2.3 性能隔离架构
+
+**核心策略：零性能影响原则**
+
+```typescript
+class PerformanceIsolatedDashboard {
+  private renderScheduler: IdleRequestCallback
+  private performanceGuard: PerformanceGuard
+  private worker: Worker
+  
+  constructor() {
+    // 性能保护器
+    this.performanceGuard = new PerformanceGuard({
+      maxCPUUsage: 0.1, // 最多占用10% CPU
+      maxMemoryUsage: 50 * 1024 * 1024, // 最多50MB内存
+      maxRenderTime: 16, // 每帧最多16ms
+      onThresholdExceeded: () => this.enterLowPerformanceMode()
+    })
+    
+    // 只在浏览器空闲时渲染
+    this.scheduleRender = () => {
+      requestIdleCallback((deadline) => {
+        if (deadline.timeRemaining() > 5) {
+          this.performRender()
+        } else {
+          this.scheduleRender() // 推迟到下次空闲
+        }
+      })
+    }
+  }
+}
+```
+
+**性能优化技术**
+1. **渲染性能隔离**：时间切片 + requestIdleCallback
+2. **内存管理**：循环缓冲区 + 虚拟滚动 + 定期清理
+3. **网络优化**：请求合并 + 批处理 + Service Worker
+4. **CPU优化**：Web Worker计算 + 帧率限制
+5. **自监控降级**：实时监控自身性能影响，自动降级
 
 ## 3. Route definitions
 
@@ -67,6 +139,59 @@ graph TD
 
 ### 4.1 Core API
 
+**SDK主入口API**
+
+```typescript
+class BMTDashboard {
+  // 静态方法 - 挂载到指定容器
+  static mount(selector: string, options: DashboardOptions): BMTDashboard;
+  
+  // 静态方法 - 创建浮动面板
+  static createFloating(options: FloatingOptions): BMTDashboard;
+  
+  // 静态方法 - iframe嵌入模式
+  static embed(options: EmbedOptions): BMTDashboard;
+  
+  // 实例方法
+  destroy(): void;
+  updateConfig(config: Partial<DashboardConfig>): void;
+  getPerformanceMetrics(): PerformanceMetrics;
+}
+
+interface DashboardOptions {
+  // 基础配置
+  config: DashboardConfig;
+  
+  // 性能配置
+  performance?: {
+    maxCPUUsage?: number; // 默认0.1 (10%)
+    maxMemoryUsage?: number; // 默认50MB
+    maxRenderTime?: number; // 默认16ms
+    enableAutoDegrade?: boolean; // 默认true
+  };
+  
+  // 挂载配置
+  mount?: {
+    mode: 'portal' | 'shadow-dom' | 'floating';
+    isolated?: boolean; // 是否完全样式隔离
+    zIndex?: number;
+  };
+}
+
+interface FloatingOptions extends DashboardOptions {
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  minimizable: boolean;
+  draggable: boolean;
+  resizable: boolean;
+}
+
+interface EmbedOptions extends DashboardOptions {
+  src: string;
+  communication: 'postMessage';
+  sandbox?: string[];
+}
+```
+
 **组件配置接口**
 
 ```typescript
@@ -74,6 +199,7 @@ interface DashboardConfig {
   layout: LayoutConfig[];
   theme: ThemeConfig;
   dataSource: DataSourceConfig;
+  performance?: PerformanceConfig;
 }
 
 interface LayoutConfig {
@@ -91,6 +217,13 @@ interface DataSourceConfig {
   endpoint: string;
   headers?: Record<string, string>;
   pollInterval?: number;
+}
+
+interface PerformanceConfig {
+  renderStrategy: 'idle' | 'frame' | 'immediate';
+  dataBufferSize: number;
+  virtualScrolling: boolean;
+  memoryCleanupInterval: number;
 }
 ```
 
@@ -264,6 +397,9 @@ interface AlertItem {
 ```typescript
 // 主要导出接口
 export {
+  // 核心类
+  BMTDashboard,
+  
   // 核心组件
   Dashboard,
   MetricCard,
@@ -286,10 +422,135 @@ export {
   
   // 类型定义
   type DashboardConfig,
+  type DashboardOptions,
+  type FloatingOptions,
+  type EmbedOptions,
   type ThemeConfig,
   type DataSourceConfig,
+  type PerformanceConfig,
   type MetricData,
   type AlertData
 };
+```
+
+## 7. 与BMT-Central-SDK的集成方案
+
+### 7.1 包依赖关系
+
+```typescript
+// packages/sdk-dashboard/package.json
+{
+  "dependencies": {
+    "@wfynbzlx666/sdk-core": "workspace:*",
+    "@wfynbzlx666/sdk-http": "workspace:*", 
+    "@wfynbzlx666/sdk-perf": "workspace:*",
+    "@wfynbzlx666/sdk-telemetry": "workspace:*",
+    "@wfynbzlx666/sdk-realtime": "workspace:*"
+  }
+}
+```
+
+### 7.2 数据源集成
+
+```typescript
+// 集成现有SDK的数据源
+class IntegratedDataSource {
+  constructor() {
+    // 性能数据来源
+    this.perfSource = new PerfDataAdapter({
+      sdk: Perf, // 来自@wfynbzlx666/sdk-perf
+      metrics: ['lcp', 'fid', 'cls', 'memory-usage', 'fps']
+    })
+    
+    // 遥测数据来源  
+    this.telemetrySource = new TelemetryDataAdapter({
+      sdk: Telemetry, // 来自@wfynbzlx666/sdk-telemetry
+      events: ['page-view', 'user-action', 'error']
+    })
+    
+    // 实时数据来源
+    this.realtimeSource = new RealtimeDataAdapter({
+      sdk: Realtime, // 来自@wfynbzlx666/sdk-realtime
+      channels: ['system-metrics', 'alerts']
+    })
+  }
+}
+```
+
+### 7.3 性能影响控制
+
+```typescript
+class PerformanceGuard {
+  private static readonly THRESHOLDS = {
+    MAX_CPU_USAGE: 0.1,      // 10%
+    MAX_MEMORY_MB: 50,       // 50MB
+    MAX_RENDER_TIME_MS: 16,  // 16ms per frame
+    MAX_NETWORK_REQUESTS: 5  // 每秒最多5个请求
+  }
+  
+  monitor() {
+    // 监控CPU使用率
+    this.monitorCPUUsage()
+    
+    // 监控内存使用
+    this.monitorMemoryUsage()
+    
+    // 监控渲染性能
+    this.monitorRenderPerformance()
+    
+    // 监控网络请求
+    this.monitorNetworkRequests()
+  }
+  
+  private enterLowPerformanceMode() {
+    console.warn('监控面板进入低性能模式')
+    
+    // 降低更新频率
+    this.setUpdateInterval(5000)
+    
+    // 禁用动画
+    this.disableAnimations()
+    
+    // 限制数据量
+    this.limitDataDisplay(100)
+    
+    // 暂停非关键功能
+    this.pauseSecondaryFeatures()
+  }
+}
+```
+
+### 7.4 用户使用示例
+
+```typescript
+// 最简单的使用方式
+import { BMTDashboard } from '@wfynbzlx666/sdk-dashboard'
+
+// 挂载到指定容器
+BMTDashboard.mount('#dashboard-container', {
+  config: {
+    layout: [
+      { id: 'perf-card', component: 'MetricCard', x: 0, y: 0, w: 4, h: 2 },
+      { id: 'error-chart', component: 'ChartContainer', x: 4, y: 0, w: 8, h: 4 }
+    ],
+    theme: { mode: 'dark' },
+    dataSource: { type: 'rest', endpoint: '/api/metrics' }
+  },
+  performance: {
+    maxCPUUsage: 0.05, // 限制为5% CPU使用率
+    enableAutoDegrade: true
+  },
+  mount: {
+    mode: 'shadow-dom',
+    isolated: true
+  }
+})
+
+// 创建浮动面板
+BMTDashboard.createFloating({
+  position: 'bottom-right',
+  minimizable: true,
+  config: { /* dashboard config */ }
+})
 ```
 
