@@ -16,7 +16,7 @@
  * - 备用机制确保在PerformanceObserver未触发时仍能收集导航数据
  */
 
-import type { PerfMetric, PerfMetricType, NavigationMetrics, ResourceMetrics, MemoryMetrics, LongTaskMetrics } from './types.js'
+import type { PerfMetric, PerfMetricType, NavigationMetrics, ResourceMetrics, LongTaskMetrics } from './types.js'
 
 // 导航条目去重标志 - 用于防止重复监控
 let navigationProcessed = false
@@ -78,10 +78,8 @@ export function createPerformanceObserver(options: PerformanceObserverOptions): 
     // 开始观察指定类型的性能条目
     po.observe({ entryTypes, buffered: options.buffered ?? true })
     
-    // 如果启用详细监控且包含内存监控，启动内存监控
-    if (enableDetailedMonitoring && entryTypes.includes('memory')) {
-      startMemoryMonitoring(onMetric, memoryMonitorInterval)
-    }
+    // 内存监控功能已迁移到 advanced-metrics.ts 中的 startMemoryLeakDetection()
+    // 该模块提供更强大的内存泄漏检测和趋势分析功能
     
     // 如果启用详细监控且包含导航监控，启动导航时间监控（备用机制）
     if (enableDetailedMonitoring && entryTypes.includes('navigation')) {
@@ -149,8 +147,6 @@ function processPerformanceEntry(
       // 处理长任务数据（超过50ms的阻塞任务）
       processLongTaskEntry(entry as any, baseMetric, onMetric)
       break
-      
-
       
     case 'measure':
       // 处理用户自定义测量指标
@@ -379,68 +375,6 @@ function processLongTaskEntry(
   })
 }
 
-/**
- * 启动内存监控
- * 
- * 该函数启动JavaScript堆内存的定期监控。通过定时采样内存使用情况，
- * 可以帮助识别内存泄漏和内存使用异常。
- * 
- * @param onMetric 指标回调函数，用于接收内存使用指标
- * @param interval 监控间隔（毫秒），默认30000ms（30秒）
- * 
- * 监控的内存指标包括：
- * - usedJSHeapSize: 已使用的JS堆大小
- * - totalJSHeapSize: 总JS堆大小（已分配但可能未完全使用）
- * - jsHeapSizeLimit: JS堆大小限制（V8引擎预设的上限，防止内存无限增长）
- * - memoryUsagePercent: 内存使用百分比
- * 
- * 注意：此功能仅在支持performance.memory的浏览器中可用（主要是Chrome）
- */
-function startMemoryMonitoring(
-  onMetric?: (metric: PerfMetric) => void,
-  interval = 30000
-): void {
-  // 检查浏览器是否支持performance.memory API
-  if (typeof (performance as any).memory === 'undefined') return
-
-  // 内存监控函数
-  const monitor = () => {
-    try {
-      const memory = (performance as any).memory
-      // 构建内存使用指标
-      const memoryMetrics: MemoryMetrics = {
-        usedJSHeapSize: memory.usedJSHeapSize, // 已使用的JS堆大小（字节）
-        totalJSHeapSize: memory.totalJSHeapSize, // 总JS堆大小（字节）
-        jsHeapSizeLimit: memory.jsHeapSizeLimit, // JS堆大小限制（字节）
-        memoryUsagePercent: Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100) // 内存使用百分比
-      }
-
-      // 发送内存使用指标
-      onMetric?.({
-        type: 'memory',
-        name: 'js-heap-usage', // JS堆内存使用指标
-        value: memoryMetrics.usedJSHeapSize, // 使用已用内存大小作为主要指标值
-        unit: 'bytes',
-        rating: getRating(memoryMetrics.memoryUsagePercent, { good: 50, poor: 80 }), // 基于使用百分比评级
-        ts: Date.now(),
-        source: 'performance-api',
-        attrs: {
-          totalJSHeapSize: memoryMetrics.totalJSHeapSize, // 总堆大小
-          jsHeapSizeLimit: memoryMetrics.jsHeapSizeLimit, // 堆大小限制
-          memoryUsagePercent: memoryMetrics.memoryUsagePercent // 使用百分比
-        }
-      })
-    } catch (error) {
-      console.warn('Memory monitoring failed:', error)
-    }
-  }
-
-  // 立即执行一次监控，获取初始内存状态
-  monitor()
-  
-  // 启动定时监控，按指定间隔持续监控内存使用情况
-  setInterval(monitor, interval)
-}
 
 /**
  * 监控导航时间（备用机制）

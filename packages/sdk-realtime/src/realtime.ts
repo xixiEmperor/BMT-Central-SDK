@@ -308,7 +308,7 @@ export class Realtime {
        */
       s.on('connected', (data) => {
         console.log('✅ 服务器连接确认:', data)
-        this.emitConnection()
+        // this.emitConnection()
       })
 
       /**

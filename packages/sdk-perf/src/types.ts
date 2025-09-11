@@ -106,17 +106,6 @@ export interface ResourceMetrics {
   cached: boolean
 }
 
-// 内存使用指标
-export interface MemoryMetrics {
-  /** 已使用的 JS 堆大小（字节） */
-  usedJSHeapSize: number
-  /** 总 JS 堆大小（字节） */
-  totalJSHeapSize: number
-  /** JS 堆大小限制（字节） */
-  jsHeapSizeLimit: number
-  /** 内存使用百分比 */
-  memoryUsagePercent: number
-}
 
 // 长任务指标
 export interface LongTaskMetrics {

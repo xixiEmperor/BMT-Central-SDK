@@ -87,7 +87,6 @@ export type { AdvancedMetricsOptions } from './advanced-metrics.js'
 export type { 
   NavigationMetrics,  // 导航性能数据结构（DNS、TCP、请求响应等各阶段耗时）
   ResourceMetrics,    // 资源加载性能数据结构（大小、类型、缓存状态等）
-  MemoryMetrics,      // 内存使用数据结构（已用、总量、限制等）
   LongTaskMetrics,    // 长任务性能数据结构（持续时间、阻塞时间等）
   PerfThresholds      // 性能指标阈值配置（用于自定义评级标准）
 } from './types.js'

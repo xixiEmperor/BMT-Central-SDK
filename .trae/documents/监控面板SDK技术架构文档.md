@@ -46,7 +46,6 @@ graph TD
 * Charts: ECharts\@5 + React-ECharts
 * State Management: Zustand\@4
 * Build Tool: Rollup\@4 (用于SDK打包)
-* Testing: Vitest + React Testing Library
 
 ### 2.2 DOM挂载技术方案
 
