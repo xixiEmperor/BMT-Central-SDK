@@ -59,7 +59,7 @@ export interface TelemetryOptions {
   
   /** 
    * 批量上报阈值
-   * 达到此数量时触发自动上报
+   * 达到此数量时立即触发上报（无论autoFlush开关状态）
    * @default 50
    */
   batchSize?: number
@@ -86,9 +86,9 @@ export interface TelemetryOptions {
   enableDedup?: boolean
   
   /** 
-   * 是否启用自动上报
-   * 控制是否自动定时上报数据
-   * @default true
+   * 是否启用定时上报
+   * 控制是否启动定时器定期上报数据（不影响批量阈值触发的上报）
+   * @default false
    */
   autoFlush?: boolean
   
@@ -121,7 +121,7 @@ export { type TelemetryEvent }
  * - 智能批量上报和重试机制
  * - 采样率控制和性能优化
  * - 用户会话管理
- * - 自动和手动上报模式
+ * - 双重上报模式：批量阈值触发 + 可选定时上报
  * - 完善的错误处理和降级策略
  * 
  * @example
@@ -188,12 +188,13 @@ export class Telemetry {
   static init(options: TelemetryOptions): void {
     // 设置默认配置值
     this.options = {
+      endpoint: 'http://localhost:5000',
       sampleRate: 1.0,        // 默认100%采样
       batchSize: 50,          // 默认批次大小50
       flushInterval: 5_000,   // 默认5秒上报间隔
       maxCacheSize: 1000,     // 默认最大缓存1000条
       enableDedup: true,      // 默认启用去重
-      autoFlush: true,        // 默认自动上报
+      autoFlush: false,        // 默认自动上报
       retryCount: 3,          // 默认重试3次
       debug: false,           // 默认关闭调试
       ...options,             // 用户配置覆盖默认值
@@ -201,9 +202,6 @@ export class Telemetry {
     
     // 生成或保持会话ID
     this.sessionId = this.sessionId ?? generateId()
-    
-    // 尝试从SDK管理器获取全局配置
-    this.updateFromSDKConfig()
     
     // 启动自动上报定时器
     if (this.options.autoFlush) {
@@ -405,20 +403,6 @@ export class Telemetry {
   }
 
   // ============ 私有方法 ============
-
-  /**
-   * 从SDK配置更新遥测设置
-   */
-  private static updateFromSDKConfig(): void {
-    // TODO: 简化版SDK Manager暂不支持配置获取，跳过配置更新
-    // const config = sdkManager.getConfig()
-    // if (config?.telemetry && this.options) {
-    //   this.options.sampleRate = config.telemetry.sampleRate
-    //   this.options.batchSize = config.telemetry.batchSize
-    //   this.options.flushInterval = config.telemetry.flushInterval
-    // }
-  }
-
   /**
    * 启动自动上报定时器
    */
@@ -491,12 +475,7 @@ export class Telemetry {
     }
 
     try {
-      // TODO: 简化版SDK Manager暂不支持配置获取
-      const endpoint = '/api/telemetry'
-      
-      // 构建完整URL
-      const baseURL = this.getBaseURL()
-      const fullURL = `${baseURL}${endpoint}`
+      const fullURL = `${this.options?.endpoint}/v1/telemetry/ingest`
       
       const body = JSON.stringify(events)
       const blob = new Blob([body], { type: 'application/json' })
@@ -517,14 +496,6 @@ export class Telemetry {
   }
 
   /**
-   * 获取API基础URL
-   */
-  private static getBaseURL(): string {
-    // TODO: 从配置中获取，暂时使用默认值
-    return this.options?.endpoint?.replace('/api/telemetry', '') || 'http://localhost:5000'
-  }
-
-  /**
    * 入队事件
    */
   private static async enqueue(partial: Omit<TelemetryEvent, 'app' | 'release' | 'ts' | 'id' | 'sessionId'> & { props?: Record<string, any> }) {
@@ -542,16 +513,14 @@ export class Telemetry {
     
     await this.storage.add(event)
 
-    // 如果达到批次大小，立即上报
-    if (this.options.autoFlush) {
-      const count = await this.storage.getCount()
-      if (count >= (this.options.batchSize ?? 50)) {
-        this.flush().catch(error => {
-          if (this.options?.debug) {
-            console.error('Immediate flush error:', error)
-          }
-        })
-      }
+    // 检查是否达到批次大小，达到则立即上报（与autoFlush无关）
+    const count = await this.storage.getCount()
+    if (count >= (this.options.batchSize ?? 50)) {
+      this.flush().catch(error => {
+        if (this.options?.debug) {
+          console.error('Batch size flush error:', error)
+        }
+      })
     }
   }
 }

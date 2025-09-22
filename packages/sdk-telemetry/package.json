@@ -1,6 +1,6 @@
 {
   "name": "@wfynbzlx666/sdk-telemetry",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "BMT 平台 SDK 遥测上报 - 事件缓冲、批量上报、跨标签页去重",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,7 @@
     "clean": "rm -rf dist"
   },
   "keywords": ["telemetry", "analytics", "events", "beacon", "platform"],
-  "author": "BMT Platform Team",
+  "author": "wfynbzlx666",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
@@ -31,13 +31,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/bmt-central-sdk.git",
+    "url": "https://github.com/xixiEmperor/BMT-Central-SDK",
     "directory": "packages/sdk-telemetry"
   },
   "dependencies": {
-    "@wfynbzlx666/sdk-core": "workspace:*",
-    "@wfynbzlx666/sdk-perf": "workspace:*",
-    "@wfynbzlx666/sdk-http": "workspace:*"
+    "@wfynbzlx666/sdk-core": "0.0.2",
+    "@wfynbzlx666/sdk-perf": "1.0.0",
+    "@wfynbzlx666/sdk-http": "0.0.3"
   },
   "devDependencies": {
   }

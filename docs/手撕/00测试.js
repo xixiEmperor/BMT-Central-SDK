@@ -1,160 +1,76 @@
-class MyPromise {
-    constructor(executor) {
-        this.status = 'pending'
-        this.value = null
-        this.reason = null
-        this.onFulfilledCallback = []
-        this.onRejectedCallback = []
+class EventEmitter {
+    constructor() {
+        this.subscriber = new Map()
+        this.count = 0
+    }
 
-        const resolve = (value) => {
-            this.status = 'fulfilled'
-            this.value = value
+    on(topic, callback) {
+        let listeners = this.subscriber.get(topic)
 
-            for (const l of this.onFulfilledCallback) {
-                l(value)
-            }
+        if (!listeners) {
+            this.subscriber.set(topic, new Set())
+        }
+        listeners = this.subscriber.get(topic)
+
+        let id = this.count
+        console.log(`您的订阅id为${id}`)
+        const item = new Map()
+        item.set(id, callback)
+        listeners.add(item)
+        this.count++
+    }
+
+    emit(topic, data) {
+        let index = 0
+
+        let listeners = this.subscriber.get(topic)
+        if (!listeners) {
+            console.log('您发送的频道不存在')
+            return
         }
 
-        const reject = (reason) => {
-            this.status = 'rejected'
-            this.reason = reason
+        listeners.forEach((l) => {
+            const c = l.get(index)
+            c(data)
+            index++
+        });
+    }
 
-            for (const l of this.onRejectedCallback) {
-                l(reason)
-            }
+    look() {
+        console.log(this.subscriber)
+    }
+
+    off(topic, id) {
+        const listeners = this.subscriber.get(topic)
+
+        if (!listeners) {
+            console.log('您取消订阅的主题不存在')
+            return
         }
 
-        try {
-            executor(resolve, reject)
-        } catch (error) {
-            reject(error)
-        }
-    }
-
-    then(onFulfilled, onError) {
-        onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value
-        onError = typeof onError === 'function' ? onError : reason => new Error(reason)
-
-        const promise2 = new MyPromise((resolve, reject) => {
-            if (this.status === 'fulfilled') {
-                setTimeout(() => {
-                    try {
-                        onFulfilled(this.value)
-                    } catch (error) {
-                        reject(error)
-                    }
-                }, 0)
+        // 找到包含指定id的Map对象并删除它
+        listeners.forEach((l) => {
+            if (l.has(id)) {
+                listeners.delete(l)  // 删除整个Map对象，而不是id
+                if (listeners.size === 0) {
+                    this.subscriber.delete(topic)
+                }
             }
-
-            if (this.status === 'rejected') {
-                setTimeout(() => {
-                    try {
-                        onError(this.reason)
-                    } catch (error) {
-                        reject(error)
-                    }
-                }, 0);
-            }
-
-            if (this.status === 'pending') {
-                this.onFulfilledCallback.push(() => {
-                    setTimeout(() => {
-                        try {
-                            onFulfilled(this.value)
-                        } catch (error) {
-                            reject(error)
-                        }
-                    }, 0)
-                })
-
-                this.onRejectedCallback.push(() => {
-                    setTimeout(() => {
-                        try {
-                            onError(this.reason)
-                        } catch (error) {
-                            reject(error)
-                        }
-                    }, 0);
-                })
-            }
-        })
-
-        return promise2
-    }
-
-    catch(onError) {
-        return this.then(_, onError)
-    }
-
-    static all(promises) {
-        return new MyPromise((resolve, reject) => {
-            let results = []
-            let total = promises.length
-            let compliteCount = 0
-
-            if(total === 0){
-                resolve(results)
-                return
-            }
-
-            promises.forEach((p, index) => {
-                MyPromise.resolve(p.then(value => {
-                    results[index] = value
-                    compliteCount++
-
-                    if(compliteCount === total){
-                        resolve(results)
-                        return
-                    }
-                }).catch(error => reject(error)))
-            })
-        })
-    }
-    
-    static race(promises) {
-        return new MyPromise((resolve, reject) => {
-            promises.forEach(p => {
-                MyPromise.resolve(p).then(value => resolve(value)).catch(error => reject(error))
-            })
-        })
-    }
-
-    static allSettled(promises) {
-        return new Promise((resolve) => {
-            let results = []
-            let completedCount = 0
-            let total = promises.length
-
-            if(total === 0) {
-                resolve(results)
-                return
-            }
-
-            promises.forEach((p, index) => {
-                Promise.resolve(p).then(value => {
-                    results[index] = {
-                        statu: 'fulfilled',
-                        value
-                    }
-                    completedCount++
-
-                    if(completedCount === total){
-                        resolve(results)
-                        return
-                    }
-                }).catch(error => {
-                    results[index] = {
-                        statu: 'rejected',
-                        error
-                    }
-                    completedCount++
-
-                    if(completedCount === total){
-                        resolve(results)
-                        return
-                    }
-                })
-            })
         })
     }
 }
+
+const emiter = new EventEmitter()
+
+emiter.on('test1', (data) => {
+    console.log("test1接收到数据:", data)
+})
+
+
+emiter.emit('test1', "1")
+
+emiter.off('test1', 0)
+emiter.look()
+
+emiter.emit('test1', '1')
+

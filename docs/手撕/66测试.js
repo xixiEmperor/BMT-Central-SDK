@@ -1,0 +1,5 @@
+const map = new Map()
+map.set('test', { 'a': 1 })
+map.set('test', { 'b': 2 })
+map.set('test', { 'c': 3 })
+console.log(map.get('test'))

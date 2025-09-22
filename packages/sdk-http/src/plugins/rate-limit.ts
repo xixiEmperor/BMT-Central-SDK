@@ -1,32 +1,3 @@
-/**
- * HTTP请求限流插件模块
- * 
- * 实现客户端级别的请求频率控制，基于令牌桶算法：
- * - 平滑的请求速率控制，避免对服务器造成压力
- * - 支持突发请求的缓冲处理  
- * - 智能排队机制，避免请求丢失
- * - 内存高效，性能开销极小
- * 
- * 核心特性：
- * - 令牌桶算法实现，支持突发流量
- * - 可配置的RPS和突发容量
- * - 请求排队机制，防止请求丢失
- * - 自动令牌补充，平滑限流效果
- * 
- * 使用场景：
- * - 第三方API调用限频
- * - 防止客户端请求过载
- * - 优化网络资源使用
- * - 遵守API提供商的速率限制
- * 
- * 算法说明：
- * 令牌桶算法允许一定的突发请求，同时保证长期平均速率
- * - 令牌以固定速率（RPS）添加到桶中
- * - 每个请求消耗一个令牌
- * - 桶满时新令牌被丢弃
- * - 无令牌时请求进入等待队列
- */
-
 import type { HttpPlugin } from './types.js'
 
 /**
@@ -164,6 +135,10 @@ export function rateLimitPlugin(options: RateLimitOptions = {}): HttpPlugin {
     if (add > 0) {
       // 添加令牌，但不超过桶容量
       tokens = Math.min(tokens + add, burst)
+      // 这里必须要在更新令牌数之后更新上次补充时间，否则会导致令牌数不准确
+      // 假设我每秒请求10次，但是我有一堆请求，这个时候就会存在请求进入等待状态，
+      // 而定时器中也调用了refill，如果不等补充成功后才更新时间，会导致上一次的补充时间一直在变化
+      // 这样一来就可能导致(now - lastRefill) / 1000 * rps一直等于0，直接不发令牌了
       lastRefill = now
     }
   }
@@ -195,6 +170,8 @@ export function rateLimitPlugin(options: RateLimitOptions = {}): HttpPlugin {
     }
     
     // 加入等待队列，返回Promise等待后续处理
+    // 有多少任务就有多少resolve，等待队列并不需要记录任务和resolve的对应关系
+    // 只要是还没有通过检查的请求就会被await一直堵塞，等待队列其实就是相当于给正在排队的请求发一个通行证
     return new Promise((resolve) => queue.push(resolve))
   }
 
