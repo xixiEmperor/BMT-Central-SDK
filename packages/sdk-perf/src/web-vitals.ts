@@ -230,6 +230,8 @@ function observeCLS(onMetric?: (metric: PerfMetric) => void): void {
     console.warn('CLS: 浏览器不支持PerformanceObserver')
     return
   }
+
+  let set = new Set()
   
   try {
     let clsValue = 0 // 累积布局偏移值
@@ -244,6 +246,10 @@ function observeCLS(onMetric?: (metric: PerfMetric) => void): void {
           clsValue += layoutShiftEntry.value
         }
       }
+
+      if (set.has(clsValue)) {
+        return
+      }
       
       // 每次更新都报告当前的累积值
       onMetric?.({
@@ -255,6 +261,8 @@ function observeCLS(onMetric?: (metric: PerfMetric) => void): void {
         ts: Date.now(),
         source: 'web-vitals'
       })
+
+      set.add(clsValue)
     })
     
     // 开始观察布局偏移事件
@@ -380,11 +388,13 @@ function observeFCP(onMetric?: (metric: PerfMetric) => void): void {
   try {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries()
+      console.log('FCP entries', entries)
 
       // paint事件通常只包含一个条目，直接检查第一个条目
-      if (entries.length > 0 && entries[0].name === 'first-contentful-paint') {
-        const entry = entries[0]
-        const value = entry.startTime
+      if (entries.length > 0) {
+
+        const entry = entries.find(entry => entry.name === 'first-contentful-paint')
+        const value = entry?.startTime ?? 0
 
         onMetric?.({
           type: 'vitals',

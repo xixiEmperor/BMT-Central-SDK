@@ -53,7 +53,7 @@ export class TelemetryAPI {
       throw new Error('Batch size cannot exceed 200 events');
     }
 
-    return http.post<TelemetryResponse>(`${this.BASE_PATH}/ingest`, events);
+    return http.post<TelemetryResponse>(`${this.BASE_PATH}/v1/telemetry/ingest`, events);
   }
 
   /**

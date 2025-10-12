@@ -180,7 +180,7 @@ export function initHttp(options: HttpClientOptions): HttpClient {
   const {
     baseURL,                    // API 基础地址
     plugins = [],              // 插件列表，默认为空数组
-    retry,                     // 重试配置
+    retry = {retries: 1},                     // 重试配置
     rateLimit,                 // 限流配置
     requestDedup = true,       // 请求去重开关，默认启用
     timeout = 10_000,          // 超时时间，默认 10 秒
@@ -262,18 +262,18 @@ export function initHttp(options: HttpClientOptions): HttpClient {
         let mapped: any = err
         
         // ============ 错误类型映射 ============
-        if (isAxiosError(err)) {
-          if (err.code === 'ECONNABORTED') {
-            // 超时错误
-            mapped = HttpError.timeout(err.message)
-          } else if (err.response) {
-            // HTTP 状态码错误（4xx, 5xx）
-            mapped = HttpError.http(err.response.status, err.message, err.response.data)
-          } else if (err.request) {
-            // 网络错误（无响应）
-            mapped = HttpError.network(err.message || 'Network Error')
-          }
-        }
+        // if (isAxiosError(err)) {
+        //   if (err.code === 'ECONNABORTED') {
+        //     // 超时错误
+        //     mapped = HttpError.timeout(err.message)
+        //   } else if (err.code === 'ERR_BAD_REQUEST') {
+        //     // HTTP 状态码错误（4xx, 5xx）
+        //     mapped = HttpError.http(err.response?.status ?? 0, err.message, err.response?.data)
+        //   } else if (err.request) {
+        //     // 网络错误（无响应）
+        //     mapped = HttpError.network(err.message || 'Network Error')
+        //   }
+        // }
         
         // 应用插件的错误处理（不阻塞错误抛出）
         try {

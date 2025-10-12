@@ -1,7 +1,7 @@
 {
   "name": "@wfynbzlx666/sdk-http",
-  "version": "0.0.3",
-  "description": "BMT 平台 SDK HTTP 客户端 - Axios 单例、插件链、统一错误处理",
+  "version": "0.0.4",
+  "description": "BMT 平台 SDK HTTP 客户端 - Axios 单例、插件链",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
