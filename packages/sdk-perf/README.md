@@ -18,6 +18,7 @@
 - [配置参考](#配置参考)
 - [浏览器兼容性](#浏览器兼容性)
 - [最佳实践](#最佳实践)
+- [Node.js 环境性能审计（新功能）](#-nodejs-环境性能审计新功能)
 - [故障排除](#故障排除)
 
 ## 📖 简介
@@ -897,6 +898,354 @@ router.afterEach(() => {
   Perf.init(perfConfig)
 })
 ```
+
+## 🚀 Node.js 环境性能审计（新功能）
+
+### 概述
+
+从 v1.0.3 开始，`@wfynbzlx666/sdk-perf` 新增了基于 **Puppeteer** 和 **Lighthouse** 的自动化页面性能审计功能。此功能专为 **Node.js 环境**设计，特别适合：
+
+- ✅ CI/CD 流程中的性能回归测试
+- ✅ 定时性能监控任务
+- ✅ 批量页面性能评估
+- ✅ 生成可视化性能报告
+
+⚠️ **注意**：审计功能仅在 Node.js 环境中可用，浏览器环境会抛出错误提示。
+
+### 快速开始
+
+#### 安装依赖
+
+审计功能需要额外安装 Puppeteer 和 Lighthouse：
+
+```bash
+npm install @wfynbzlx666/sdk-perf puppeteer lighthouse
+```
+
+#### 基础使用
+
+```typescript
+import { auditPages, generateReport } from '@wfynbzlx666/sdk-perf'
+
+// 批量审计页面
+const summary = await auditPages({
+  urls: [
+    'https://example.com',
+    'https://example.com/about',
+    'https://example.com/products'
+  ],
+  lighthouse: {
+    formFactor: 'mobile',
+    categories: ['performance', 'accessibility']
+  },
+  concurrency: 2
+})
+
+console.log(`审计完成: ${summary.success}/${summary.total}`)
+console.log(`平均性能分数: ${summary.averagePerformanceScore}`)
+
+// 生成 HTML 报告
+await generateReport(summary, 'html', './audit-report.html')
+```
+
+### 审计配置
+
+#### AuditConfig 配置对象
+
+```typescript
+interface AuditConfig {
+  // 必需：要审计的页面 URL 数组
+  urls: string[]
+  
+  // Lighthouse 配置
+  lighthouse?: {
+    formFactor?: 'mobile' | 'desktop'  // 设备类型，默认 'mobile'
+    throttling?: 'mobile3G' | 'mobile4G' | 'none'  // 网络节流，默认 'mobile4G'
+    categories?: Array<'performance' | 'accessibility' | 'best-practices' | 'seo' | 'pwa'>
+  }
+  
+  // Puppeteer 配置
+  puppeteer?: {
+    headless?: boolean  // 无头模式，默认 true
+    timeout?: number    // 超时时间(ms)，默认 30000
+  }
+  
+  // 输出配置
+  output?: {
+    format?: 'json' | 'html' | 'csv'  // 报告格式
+    path?: string      // 输出文件路径
+    verbose?: boolean  // 详细日志，默认 false
+  }
+  
+  // 并发控制
+  concurrency?: number  // 并发数量，默认 3
+  
+  // 失败重试
+  retryCount?: number  // 重试次数，默认 1
+}
+```
+
+### 核心 API
+
+#### 1. auditPages - 批量审计
+
+批量审计多个页面，支持并发控制和进度回调。
+
+```typescript
+import { auditPages } from '@wfynbzlx666/sdk-perf'
+
+const summary = await auditPages({
+  urls: ['https://example.com', 'https://example.com/about'],
+  lighthouse: {
+    formFactor: 'desktop',
+    throttling: 'none',
+    categories: ['performance', 'seo']
+  },
+  concurrency: 3,
+  output: {
+    verbose: true  // 输出详细日志
+  },
+  // 进度回调
+  onProgress: (progress) => {
+    console.log(`[${progress.current}/${progress.total}] ${progress.url} - ${progress.status}`)
+  }
+})
+```
+
+#### 2. auditSinglePage - 单页审计
+
+审计单个页面。
+
+```typescript
+import { auditSinglePage } from '@wfynbzlx666/sdk-perf'
+
+const result = await auditSinglePage('https://example.com', {
+  lighthouse: {
+    formFactor: 'mobile',
+    categories: ['performance']
+  }
+})
+
+console.log('性能分数:', result.scores?.performance)
+console.log('LCP:', result.metrics?.lcp)
+console.log('优化建议:', result.opportunities)
+```
+
+#### 3. quickAudit - 快速审计
+
+使用默认配置快速审计（推荐用于简单场景）。
+
+```typescript
+import { quickAudit } from '@wfynbzlx666/sdk-perf'
+
+// 单个页面
+const result = await quickAudit('https://example.com')
+
+// 多个页面
+const summary = await quickAudit([
+  'https://example.com',
+  'https://example.com/about'
+])
+```
+
+#### 4. generateReport - 生成报告
+
+生成并保存审计报告，支持多种格式。
+
+```typescript
+import { auditPages, generateReport } from '@wfynbzlx666/sdk-perf'
+
+const summary = await auditPages({ ... })
+
+// 生成 JSON 报告
+await generateReport(summary, 'json', './report.json')
+
+// 生成 HTML 可视化报告
+await generateReport(summary, 'html', './report.html')
+
+// 生成 CSV 表格
+await generateReport(summary, 'csv', './report.csv')
+```
+
+### 使用场景示例
+
+#### 场景 1：CI/CD 性能回归测试
+
+```typescript
+// ci-performance-test.js
+import { auditPages } from '@wfynbzlx666/sdk-perf'
+
+const PERFORMANCE_THRESHOLD = 75
+
+async function performanceTest() {
+  const summary = await auditPages({
+    urls: [
+      'https://myapp.com',
+      'https://myapp.com/dashboard',
+      'https://myapp.com/profile'
+    ],
+    lighthouse: {
+      formFactor: 'mobile',
+      categories: ['performance']
+    },
+    concurrency: 2,
+    output: { verbose: true }
+  })
+  
+  const avgScore = summary.averagePerformanceScore
+  
+  if (avgScore < PERFORMANCE_THRESHOLD) {
+    console.error(`❌ 性能测试失败! 平均分数 ${avgScore} 低于阈值 ${PERFORMANCE_THRESHOLD}`)
+    process.exit(1)
+  }
+  
+  console.log(`✅ 性能测试通过! 平均分数: ${avgScore}`)
+}
+
+performanceTest()
+```
+
+#### 场景 2：定时性能监控
+
+```typescript
+// scheduled-audit.js
+import { auditPages, generateReport } from '@wfynbzlx666/sdk-perf'
+import schedule from 'node-schedule'
+
+// 每天凌晨 2 点执行
+schedule.scheduleJob('0 2 * * *', async () => {
+  const summary = await auditPages({
+    urls: ['https://myapp.com'],
+    lighthouse: {
+      formFactor: 'mobile',
+      categories: ['performance', 'accessibility', 'seo']
+    }
+  })
+  
+  const timestamp = new Date().toISOString().split('T')[0]
+  await generateReport(summary, 'html', `./reports/audit-${timestamp}.html`)
+  
+  console.log('审计完成，报告已生成')
+})
+```
+
+#### 场景 3：多环境对比测试
+
+```typescript
+import { auditSinglePage } from '@wfynbzlx666/sdk-perf'
+
+async function compareEnvironments() {
+  const url = '/dashboard'
+  
+  const [dev, staging, prod] = await Promise.all([
+    auditSinglePage(`https://dev.myapp.com${url}`),
+    auditSinglePage(`https://staging.myapp.com${url}`),
+    auditSinglePage(`https://myapp.com${url}`)
+  ])
+  
+  console.log('性能对比:')
+  console.log(`Dev: ${dev.scores?.performance}`)
+  console.log(`Staging: ${staging.scores?.performance}`)
+  console.log(`Production: ${prod.scores?.performance}`)
+}
+```
+
+### 审计功能最佳实践
+
+#### 1. 合理设置并发数
+
+```typescript
+import os from 'os'
+
+const summary = await auditPages({
+  urls: [...],
+  // CPU 密集型，建议并发数 = CPU 核心数
+  concurrency: os.cpus().length
+})
+```
+
+#### 2. CI 环境配置
+
+在 CI/CD 环境中，建议添加 Puppeteer 启动参数：
+
+```typescript
+const summary = await auditPages({
+  urls: [...],
+  puppeteer: {
+    launchOptions: {
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
+      ]
+    }
+  }
+})
+```
+
+#### 3. 分批审计大量页面
+
+```typescript
+function chunk<T>(array: T[], size: number): T[][] {
+  const chunks = []
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size))
+  }
+  return chunks
+}
+
+const urls = [...] // 100+ URLs
+const batches = chunk(urls, 10)
+
+for (const batch of batches) {
+  const summary = await auditPages({
+    urls: batch,
+    concurrency: 3
+  })
+  // 保存每批结果
+}
+```
+
+### 审计功能故障排除
+
+#### Puppeteer 下载失败
+
+如果在国内网络环境下 Puppeteer 下载 Chromium 失败：
+
+```bash
+# 设置国内镜像
+export PUPPETEER_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/chromium-browser-snapshots/
+npm install puppeteer
+```
+
+或使用 `puppeteer-core` + 本地 Chrome：
+
+```typescript
+import puppeteer from 'puppeteer-core'
+
+const summary = await auditPages({
+  urls: [...],
+  puppeteer: {
+    launchOptions: {
+      executablePath: '/path/to/chrome'  // 本地 Chrome 路径
+    }
+  }
+})
+```
+
+#### 内存不足
+
+审计大量页面时可能遇到内存问题：
+
+1. 降低并发数
+2. 分批处理
+3. 增加系统内存或使用 `--max-old-space-size` 参数
+
+```bash
+node --max-old-space-size=4096 your-audit-script.js
+```
+
+---
 
 ## 🔧 故障排除
 

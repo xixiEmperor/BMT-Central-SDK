@@ -292,7 +292,6 @@ export class Realtime {
        */
       s.on('connect', () => {
         console.log('🔗 Socket连接建立, ID:', s.id)
-        console.log('可以进行本地热更新调试了')
         this.status = 'connected'
     
         this.emitConnection()

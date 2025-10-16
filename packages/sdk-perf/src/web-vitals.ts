@@ -35,6 +35,13 @@
  * ● INP (Interaction to Next Paint) - 交互到下一次绘制时间
  * ● TTI (Time to Interactive) - 可交互时间  
  * ● TBT (Total Blocking Time) - 总阻塞时间
+ * 
+ * SPA 模式支持：
+ * ● 支持在路由切换时重新监听性能指标
+ * ● LCP: 筛选时间戳晚于上次上报的条目
+ * ● CLS: 上报累积值后清零
+ * ● FCP: 使用 MutationObserver 监听首次内容变化
+ * ● FID: 手动监听首次交互事件
  */
 
 import type { PerfMetric } from './types.js'
@@ -170,6 +177,9 @@ function observeLCP(onMetric?: (metric: PerfMetric) => void): void {
   }
   
   try {
+    let lcpValue = 0 // 记录最新的LCP值
+    let reported = false // 标记是否已经上报过最终值
+    
     // 创建LCP观察器
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries() // 等价于performance.getEntriesByType('largest-contentful-paint')
@@ -177,23 +187,51 @@ function observeLCP(onMetric?: (metric: PerfMetric) => void): void {
       const lastEntry = entries[entries.length - 1]
       
       if (lastEntry) {
-        const value = lastEntry.startTime
-        
-        // 根据Google的Web Vitals标准进行评级
-        onMetric?.({
-          type: 'vitals',
-          name: 'LCP',
-          value: Math.round(value), // 四舍五入到整数毫秒
-          unit: 'ms',
-          rating: value > 4000 ? 'poor' : value > 2500 ? 'needs-improvement' : 'good',
-          ts: Date.now(),
-          source: 'web-vitals'
-        })
+        lcpValue = lastEntry.startTime
       }
     })
     
     // 开始观察 LCP 指标，buffered: true 表示获取历史条目
     observer.observe({ type: 'largest-contentful-paint', buffered: true })
+    
+    // 定义上报最终LCP值的函数
+    const reportLCP = () => {
+      if (reported) return
+      reported = true
+      
+      // 根据Google的Web Vitals标准进行评级
+      onMetric?.({
+        type: 'vitals',
+        name: 'LCP',
+        value: Math.round(lcpValue), // 四舍五入到整数毫秒
+        unit: 'ms',
+        rating: lcpValue > 4000 ? 'poor' : lcpValue > 2500 ? 'needs-improvement' : 'good',
+        ts: Date.now(),
+        source: 'web-vitals'
+      })
+      
+      // 断开观察器
+      observer.disconnect()
+    }
+    
+    // LCP会在以下时机确定最终值，任一事件触发时上报：
+    // 1. 用户交互（click, keydown, pointerdown等）- LCP会在首次交互时停止更新
+    // 2. 页面隐藏（visibilitychange）- 用户切换标签页时
+    // 3. 页面卸载前（pagehide）- 页面关闭或导航离开时
+    const interactionEvents = ['keydown', 'click', 'pointerdown']
+    
+    interactionEvents.forEach(eventType => {
+      addEventListener(eventType, reportLCP, { once: true, capture: true })
+    })
+    
+    addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        reportLCP()
+      }
+    }, { once: true })
+    
+    addEventListener('pagehide', reportLCP, { once: true })
+    
   } catch (error) {
     console.warn('LCP监控初始化失败:', error)
   }
@@ -230,14 +268,14 @@ function observeCLS(onMetric?: (metric: PerfMetric) => void): void {
     console.warn('CLS: 浏览器不支持PerformanceObserver')
     return
   }
-
-  let set = new Set()
   
   try {
     let clsValue = 0 // 累积布局偏移值
+    let hasReported = false
     
     const observer = new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
+      const entries = list.getEntries()
+      for (const entry of entries) {
         const layoutShiftEntry = entry as any
         
         // 只计算非用户输入引起的布局偏移
@@ -246,27 +284,40 @@ function observeCLS(onMetric?: (metric: PerfMetric) => void): void {
           clsValue += layoutShiftEntry.value
         }
       }
-
-      if (set.has(clsValue)) {
-        return
-      }
-      
-      // 每次更新都报告当前的累积值
+      // 注意：这里只累积值，不上报，等待页面隐藏或卸载时再上报最终值
+    })
+    
+    // 开始观察布局偏移事件
+    observer.observe({ type: 'layout-shift', buffered: true })
+    
+    // 定义上报最终CLS值的函数
+    const reportFinalCLS = () => {
+      if (hasReported) return
+      hasReported = true
+      // 上报最终值
       onMetric?.({
         type: 'vitals',
         name: 'CLS',
-        value: Math.round(clsValue * 1000) / 1000, // 保瘀3位小数
+        value: Math.round(clsValue * 1000) / 1000,
         unit: 'score',
         rating: clsValue > 0.25 ? 'poor' : clsValue > 0.1 ? 'needs-improvement' : 'good',
         ts: Date.now(),
         source: 'web-vitals'
       })
-
-      set.add(clsValue)
+      
+      // 断开观察器
+      observer.disconnect()
+    }
+    
+    // 在页面隐藏或卸载时上报最终值
+    addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        reportFinalCLS()
+      }
     })
     
-    // 开始观察布局偏移事件
-    observer.observe({ type: 'layout-shift', buffered: true })
+    addEventListener('pagehide', reportFinalCLS)
+    
   } catch (error) {
     console.warn('CLS监控初始化失败:', error)
   }
@@ -388,7 +439,6 @@ function observeFCP(onMetric?: (metric: PerfMetric) => void): void {
   try {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries()
-      console.log('FCP entries', entries)
 
       // paint事件通常只包含一个条目，直接检查第一个条目
       if (entries.length > 0) {

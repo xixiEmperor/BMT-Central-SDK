@@ -1,6 +1,6 @@
 {
   "name": "@wfynbzlx666/sdk-perf",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "性能监控SDK - Web Vitals、PerformanceObserver、User Timing",
   "type": "module",
   "main": "./dist/index.js",
@@ -35,8 +35,11 @@
     "directory": "packages/sdk-perf"
   },
   "dependencies": {
-    "web-vitals": "^3.5.0"
+    "puppeteer": "^23.9.0",
+    "lighthouse": "^12.2.1",
+    "@wfynbzlx666/sdk-core": "0.0.2"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2"
   }
 }
