@@ -4,20 +4,13 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   dts: true,
-  clean: true,
+  splitting: true,
   sourcemap: true,
-  target: 'es2022',
+  clean: true,
+  treeshake: true,
+  minify: false,
+  target: 'es2020',
+  platform: 'browser',
   outDir: 'dist',
-  // 将 Node.js 专用依赖标记为 external，不打包进最终产物
-  external: [
-    'puppeteer',
-    'lighthouse',
-    'fs',
-    'fs/promises',
-    'path',
-    'url',
-    '@wfynbzlx666/sdk-core'
-  ],
-  // 不将依赖打包，保持为外部依赖
-  noExternal: [],
+  external: ['@wfynbzlx666/sdk-core'],
 })

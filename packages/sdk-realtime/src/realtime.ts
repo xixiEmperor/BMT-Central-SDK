@@ -302,15 +302,6 @@ export class Realtime {
       })
 
       /**
-       * 服务器连接确认事件
-       * 服务器端确认连接建立的回调
-       */
-      s.on('connected', (data) => {
-        console.log('✅ 服务器连接确认:', data)
-        // this.emitConnection()
-      })
-
-      /**
        * 连接断开事件
        * 停止心跳，根据重连配置决定状态
        */

@@ -1,7 +1,7 @@
 {
-  "name": "@wfynbzlx666/sdk-perf",
-  "version": "1.0.4",
-  "description": "浏览器端性能监控SDK - Web Vitals、Performance Observer（仅适用于MPA）",
+  "name": "@wfynbzlx666/sdk-perf-spa",
+  "version": "1.0.1",
+  "description": "Node.js端性能审计SDK - Puppeteer + Lighthouse 自动化页面性能审计",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -24,12 +24,14 @@
     "clean": "rm -rf dist"
   },
   "keywords": [
-    "performance", 
-    "web-vitals", 
-    "browser", 
-    "metrics",
-    "monitoring",
-    "mpa"
+    "performance",
+    "lighthouse",
+    "puppeteer",
+    "audit",
+    "web-vitals",
+    "nodejs",
+    "spa",
+    "monitoring"
   ],
   "author": "wfynbzlx666",
   "license": "MIT",
@@ -40,16 +42,18 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/xixiEmperor/BMT-Central-SDK.git",
-    "directory": "packages/sdk-perf"
+    "directory": "packages/sdk-perf-spa"
   },
   "dependencies": {
+    "@wfynbzlx666/sdk-core": "0.0.2",
+    "puppeteer": "^23.11.1",
+    "lighthouse": "^12.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "typescript": "^5.0.0",
     "tsup": "^8.0.0"
   },
-  "peerDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }

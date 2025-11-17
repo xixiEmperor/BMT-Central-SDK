@@ -168,16 +168,19 @@ export function generateHTML(results: AuditResult[] | AuditSummary): string {
     const scoreColor = getScoreColor(perfScore)
     const scoreLabel = getScoreLabel(perfScore)
 
-    // 生成优化建议列表
+    // 生成优化建议列表（显示所有建议，不限制数量）
     const opportunitiesList = result.opportunities && result.opportunities.length > 0
       ? `
         <div class="opportunities">
           <h4>🎯 优化建议 (${result.opportunities.length})</h4>
           <ul>
-            ${result.opportunities.slice(0, 5).map(opp => `
+            ${result.opportunities.map(opp => `
               <li>
-                <strong>${opp.title}</strong>
-                ${opp.savings ? `<span class="savings">可节省 ${(opp.savings / 1000).toFixed(2)}s</span>` : ''}
+                <div class="opportunity-header">
+                  <strong>${opp.title}</strong>
+                  ${opp.savings ? `<span class="savings">可节省 ${(opp.savings / 1000).toFixed(2)}s</span>` : ''}
+                </div>
+                ${opp.description ? `<p class="opportunity-description">${opp.description}</p>` : ''}
               </li>
             `).join('')}
           </ul>
@@ -265,6 +268,16 @@ export function generateHTML(results: AuditResult[] | AuditSummary): string {
               ` : ''}
             </div>
           </div>
+
+          ${result.metrics?.lcpScreenshot && process.env.NODE_ENV !== 'production' ? `
+            <div class="lcp-screenshot">
+              <h4>🎯 LCP 最大内容元素截图</h4>
+              <div class="screenshot-container">
+                <pre>最大内容元素为："${result.metrics.lcpScreenshot}"</pre>
+                <p class="screenshot-hint">优化此区域可以显著提升 LCP 指标</p>
+              </div>
+            </div>
+          ` : ''}
 
           ${opportunitiesList}
         ` : `
@@ -511,14 +524,25 @@ export function generateHTML(results: AuditResult[] | AuditSummary): string {
     }
 
     .opportunities li {
-      padding: 12px;
+      padding: 15px;
       background: #fff9e6;
       border-left: 3px solid #ffa400;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       border-radius: 4px;
+    }
+
+    .opportunity-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .opportunity-description {
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+      line-height: 1.5;
     }
 
     .savings {
@@ -528,6 +552,40 @@ export function generateHTML(results: AuditResult[] | AuditSummary): string {
       border-radius: 12px;
       font-size: 12px;
       font-weight: 600;
+      flex-shrink: 0;
+      margin-left: 10px;
+    }
+
+    .lcp-screenshot {
+      margin-bottom: 30px;
+    }
+
+    .lcp-screenshot h4 {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .screenshot-container {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .screenshot-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 10px;
+    }
+
+    .screenshot-hint {
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+      font-style: italic;
     }
 
     .error-message {

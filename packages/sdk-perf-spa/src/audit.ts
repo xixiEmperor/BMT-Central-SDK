@@ -28,6 +28,7 @@ import type {
   AuditOpportunity
 } from './audit-types.js'
 import { createTaskQueue } from '@wfynbzlx666/sdk-core'
+import { generateReport } from './audit-reporter.js'
 
 /**
  * 检查是否在 Node.js 环境
@@ -110,8 +111,36 @@ function buildLighthouseConfig(config: AuditConfig): any {
 function extractWebVitals(lhr: any): WebVitalsMetrics {
   const audits = lhr.audits || {}
 
+  // 提取 LCP 元素截图
+  let lcpScreenshot: string | null = null
+  try {
+    const lcpAudit = audits['largest-contentful-paint-element']
+    if (lcpAudit?.details?.items?.[0]) {
+      const lcpElement = lcpAudit.details.items[0]
+      lcpScreenshot = lcpElement.items[0].node.snippet
+      // Lighthouse 会在 details 中提供 LCP 元素的截图数据
+      // if (lcpElement.node?.lhId) {
+      //   // 尝试从 fullPageScreenshot 中找到对应元素的截图
+      //   const screenshots = lhr.audits['full-page-screenshot']
+      //   if (screenshots?.details?.screenshot) {
+      //     lcpScreenshot = screenshots.details.screenshot.data
+      //   } else if (lhr.audits['screenshot-thumbnails']?.details?.items?.[0]) {
+      //     // 降级方案：使用缩略图截图
+      //     lcpScreenshot = lhr.audits['screenshot-thumbnails'].details.items[0].data
+      //   } else if (lhr.audits['final-screenshot']?.details?.data) {
+      //     // 再降级：使用最终截图
+      //     lcpScreenshot = lhr.audits['final-screenshot'].details.data
+      //   }
+      // }
+    }
+  } catch (error) {
+    // 截图提取失败不影响其他指标
+    console.warn('提取 LCP 截图失败:', error)
+  }
+
   return {
     lcp: audits['largest-contentful-paint']?.numericValue || null,
+    lcpScreenshot,
     fid: audits['max-potential-fid']?.numericValue || null,
     cls: audits['cumulative-layout-shift']?.numericValue || null,
     fcp: audits['first-contentful-paint']?.numericValue || null,
@@ -137,6 +166,159 @@ function extractScores(lhr: any): PerformanceScores {
 }
 
 /**
+ * Lighthouse 优化建议中英文翻译映射表
+ */
+const OPPORTUNITY_TRANSLATIONS: Record<string, { title: string; description: string }> = {
+  'render-blocking-resources': {
+    title: '消除阻塞渲染的资源',
+    description: '资源阻塞了页面的首次绘制。考虑内联关键资源，延迟加载非关键资源，或移除未使用的资源。'
+  },
+  'unused-css-rules': {
+    title: '移除未使用的 CSS',
+    description: '从样式表中删除未使用的规则，减少不必要的字节消耗。'
+  },
+  'unused-javascript': {
+    title: '移除未使用的 JavaScript',
+    description: '减少未使用的 JavaScript 代码，降低网络传输时间和脚本解析时间。'
+  },
+  'uses-optimized-images': {
+    title: '使用优化的图片格式',
+    description: '使用 WebP 或 AVIF 等现代图片格式可以比 PNG 或 JPEG 提供更好的压缩效果。'
+  },
+  'modern-image-formats': {
+    title: '使用新一代图片格式',
+    description: 'WebP 和 AVIF 等图片格式通常比 PNG 或 JPEG 压缩效果更好，可以加快下载速度并减少数据消耗。'
+  },
+  'uses-responsive-images': {
+    title: '使用合适尺寸的图片',
+    description: '提供不同尺寸的图片以节省移动数据并提高加载时间。'
+  },
+  'offscreen-images': {
+    title: '延迟加载屏幕外图片',
+    description: '考虑延迟加载视口外的图片，以减少加载时间和数据使用。'
+  },
+  'unminified-css': {
+    title: '压缩 CSS',
+    description: '压缩 CSS 文件可以减小网络负载大小。'
+  },
+  'unminified-javascript': {
+    title: '压缩 JavaScript',
+    description: '压缩 JavaScript 文件可以减小负载大小和脚本解析时间。'
+  },
+  'uses-text-compression': {
+    title: '启用文本压缩',
+    description: '文本资源应该使用压缩（gzip、deflate 或 brotli）来最小化总网络字节数。'
+  },
+  'uses-rel-preconnect': {
+    title: '预连接到所需的源',
+    description: '考虑添加 preconnect 或 dns-prefetch 资源提示来建立与重要第三方源的早期连接。'
+  },
+  'server-response-time': {
+    title: '减少服务器响应时间（TTFB）',
+    description: '保持服务器响应时间低，因为高 TTFB 会延迟所有后续资源的加载。'
+  },
+  'redirects': {
+    title: '避免多次页面重定向',
+    description: '重定向会在页面加载前引入额外的延迟。'
+  },
+  'uses-rel-preload': {
+    title: '预加载关键请求',
+    description: '考虑使用 <link rel=preload> 来优先获取当前页面晚些时候发现的资源。'
+  },
+  'efficient-animated-content': {
+    title: '使用视频格式来提供动画内容',
+    description: '大型 GIF 对于提供动画内容效率很低。考虑使用 MPEG4/WebM 视频替代 GIF 以节省网络字节。'
+  },
+  'duplicated-javascript': {
+    title: '移除重复的 JavaScript 模块',
+    description: '删除大型的重复 JavaScript 模块以减少不必要的字节消耗。'
+  },
+  'legacy-javascript': {
+    title: '避免提供旧版 JavaScript 给现代浏览器',
+    description: 'Polyfill 和转译对于旧版浏览器是必要的，但对于现代浏览器则会减慢页面加载速度。'
+  },
+  'total-byte-weight': {
+    title: '避免巨大的网络负载',
+    description: '大型网络负载成本高昂，可能会严重延迟加载时间。'
+  },
+  'uses-long-cache-ttl': {
+    title: '使用高效的缓存策略提供静态资源',
+    description: '较长的缓存生命周期可以加快重复访问页面的速度。'
+  },
+  'dom-size': {
+    title: '避免过大的 DOM 尺寸',
+    description: '大型 DOM 会增加内存使用，导致更长的样式计算时间，并产生昂贵的布局重排。'
+  },
+  'critical-request-chains': {
+    title: '最小化关键请求深度',
+    description: '关键请求链表示使用关键渲染路径优先级获取的资源。降低这些链的长度和减小文件大小可以提高页面加载速度。'
+  },
+  'user-timings': {
+    title: '用户计时标记和测量',
+    description: '考虑使用 User Timing API 来测量应用的真实性能。'
+  },
+  'bootup-time': {
+    title: '减少 JavaScript 执行时间',
+    description: '考虑减少 JavaScript 解析、编译和执行所花费的时间。您可能会发现交付更小的 JavaScript 负载有助于此。'
+  },
+  'mainthread-work-breakdown': {
+    title: '最小化主线程工作',
+    description: '考虑减少解析、编译和执行 JS 所花费的时间。您可能会发现交付更小的 JS 负载有助于此。'
+  },
+  'font-display': {
+    title: '确保文本在 webfont 加载期间保持可见',
+    description: '利用 font-display CSS 功能来确保文本对用户始终可见。'
+  },
+  'third-party-summary': {
+    title: '减少第三方代码的影响',
+    description: '第三方代码会显著影响加载性能。限制使用的第三方供应商数量并尝试在主要内容加载后加载第三方代码。'
+  },
+  'third-party-facades': {
+    title: '使用延迟加载第三方资源',
+    description: '某些第三方嵌入可以延迟加载。考虑用门面替换它们，直到它们在视口中。'
+  },
+  'largest-contentful-paint-element': {
+    title: '最大内容绘制元素',
+    description: '这是在视口中渲染的最大元素。'
+  },
+  'lcp-lazy-loaded': {
+    title: 'LCP 元素不应该延迟加载',
+    description: '最大内容绘制元素不应该延迟加载，因为这会延迟关键内容的渲染。'
+  },
+  'layout-shift-elements': {
+    title: '避免大型布局偏移',
+    description: '这些 DOM 元素对页面的 CLS 贡献最大。'
+  },
+  'uses-passive-event-listeners': {
+    title: '使用被动监听器来提高滚动性能',
+    description: '考虑将触摸和滚轮事件监听器标记为 passive 以提高页面的滚动性能。'
+  },
+  'no-document-write': {
+    title: '避免使用 document.write()',
+    description: '对于连接速度慢的用户，通过 document.write() 引入的外部脚本可能会延迟页面加载数十秒。'
+  },
+  'long-tasks': {
+    title: '避免长主线程任务',
+    description: '列出了占据主线程最长时间的任务，这些任务可能会导致输入延迟。'
+  }
+}
+
+/**
+ * 翻译优化建议标题
+ */
+function translateOpportunityTitle(id: string, originalTitle: string): string {
+  return OPPORTUNITY_TRANSLATIONS[id]?.title || originalTitle
+}
+
+/**
+ * 翻译优化建议描述
+ */
+function translateOpportunityDescription(id: string, originalDescription: string): string {
+  return OPPORTUNITY_TRANSLATIONS[id]?.description || originalDescription
+}
+
+
+/**
  * 从 Lighthouse 结果中提取优化建议
  */
 function extractOpportunities(lhr: any): AuditOpportunity[] {
@@ -149,8 +331,8 @@ function extractOpportunities(lhr: any): AuditOpportunity[] {
     if (audit.details?.type === 'opportunity' && audit.numericValue) {
       opportunities.push({
         id,
-        title: audit.title,
-        description: audit.description || '',
+        title: translateOpportunityTitle(id, audit.title),
+        description: translateOpportunityDescription(id, audit.description || ''),
         savings: audit.numericValue,
         score: audit.score
       })
@@ -180,11 +362,23 @@ async function auditSinglePageInternal(
 
     // 运行 Lighthouse
     const lighthouseConfig = buildLighthouseConfig(config)
-    const runnerResult = await lighthouse(url, {
+
+    // 构建 Lighthouse flags（命令行选项）
+    // 这些参数会传递给 Lighthouse API
+    const lighthouseFlags = {
       port: parseInt(new URL(browserWSEndpoint).port),
-      output: 'json',
-      logLevel: config.output?.verbose ? 'info' : 'error'
-    }, lighthouseConfig)
+      // output: 报告输出格式（必须是数组）
+      // 支持: ['json'], ['html'], ['csv'] 或多格式 ['json', 'html']
+      output: (config.output?.format ? [config.output.format] : ['json']) as ('json' | 'html' | 'csv')[],
+      // outputPath: 报告文件保存路径
+      // 如果指定，Lighthouse 会自动将报告保存到该路径
+      outputPath: config.output?.path ? config.output.path : undefined,
+      // logLevel: 日志级别
+      // 'info' - 详细日志，'error' - 只显示错误
+      logLevel: (config.output?.verbose ? 'info' : 'error') as 'info' | 'error'
+    }
+
+    const runnerResult = await lighthouse(url, lighthouseFlags, lighthouseConfig)
 
     if (!runnerResult || !runnerResult.lhr) {
       throw new Error('Lighthouse 审计失败: 未返回结果')
@@ -276,8 +470,21 @@ export async function auditSinglePage(
     ...config.puppeteer?.launchOptions
   })
 
+  // 打开页面
+  const page = await browser.newPage()
+  await page.coverage.startJSCoverage(),
+  // Navigate to page
+  await page.goto(url);
+  // Disable both JavaScript and CSS coverage
+  const jsCoverage = await page.coverage.stopJSCoverage();
+  console.log('JavaScript 覆盖率:', jsCoverage)
+
   try {
     const result = await auditSinglePageInternal(url, browser, fullConfig)
+    if (config.output?.path) {
+      await generateReport([result], config.output.format || 'json', config.output.path)
+    }
+
     return result
   } finally {
     await browser.close()
@@ -292,29 +499,6 @@ export async function auditSinglePage(
  * 
  * @param config - 审计配置
  * @returns 审计结果汇总
- * 
- * @example
- * ```typescript
- * const summary = await auditPages({
- *   urls: [
- *     'https://example.com',
- *     'https://example.com/about',
- *     'https://example.com/contact'
- *   ],
- *   lighthouse: {
- *     formFactor: 'desktop',
- *     categories: ['performance', 'accessibility']
- *   },
- *   concurrency: 2,
- *   output: {
- *     format: 'json',
- *     path: './audit-results.json'
- *   }
- * })
- * 
- * console.log(`审计完成: ${summary.success}/${summary.total}`)
- * console.log(`平均性能分数: ${summary.averagePerformanceScore}`)
- * ```
  */
 export async function auditPages(config: AuditOptions): Promise<AuditSummary> {
   // 环境检查
@@ -388,7 +572,12 @@ export async function auditPages(config: AuditOptions): Promise<AuditSummary> {
     })
 
     // 等待所有任务完成
-    await Promise.all(tasks)
+    await queue.start()
+
+    // 如果配置了输出路径，则生成报告
+    if (config.output?.path) {
+      await generateReport(results, config.output.format || 'json', config.output.path)
+    }
 
     // 计算汇总数据
     const success = results.filter(r => r.success).length

@@ -4,11 +4,14 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   dts: true,
-  clean: true,
-  sourcemap: true,
   splitting: true,
+  sourcemap: true,
+  clean: true,
   treeshake: true,
   minify: true,
-  target: 'es2022',
+  target: 'es2020',
+  platform: 'node',
   outDir: 'dist',
+  external: ['@wfynbzlx666/sdk-core', 'puppeteer', 'lighthouse'],
 })
+

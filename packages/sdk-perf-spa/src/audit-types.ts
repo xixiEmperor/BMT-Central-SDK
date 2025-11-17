@@ -172,6 +172,9 @@ export interface WebVitalsMetrics {
   /** Largest Contentful Paint - 最大内容绘制(毫秒) */
   lcp: number | null
 
+  /** LCP 元素截图 (Base64 编码的图片数据) */
+  lcpScreenshot?: string | null
+
   /** First Input Delay - 首次输入延迟(毫秒) */
   fid: number | null
 
@@ -260,7 +263,7 @@ export interface AuditResult {
   duration?: number
 
   /** 完整的 Lighthouse 结果(可选) */
-  lighthouseResult?: LighthouseResult
+  lighthouseResult?: any
 }
 
 /**

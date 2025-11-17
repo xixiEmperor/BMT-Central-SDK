@@ -5,6 +5,7 @@ const packages = [
   "@wfynbzlx666/sdk-perf",
   "@wfynbzlx666/sdk-telemetry",
   "@wfynbzlx666/sdk-realtime",
+  "@wfynbzlx666/sdk-perf-spa",
 ];
 
 let total = 0;

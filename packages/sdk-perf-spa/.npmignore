@@ -1,0 +1,21 @@
+# Source files
+src/
+examples/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+
+# Development files
+*.log
+.DS_Store
+node_modules/
+
+# Test files
+*.test.ts
+*.spec.ts
+
+# markdown files
+OUTPUT-CONFIG-FIX.md
+QUICK-START.md
+

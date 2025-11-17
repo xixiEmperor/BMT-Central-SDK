@@ -1,18 +1,3 @@
-/**
- * HTTP认证插件模块
- * 
- * 提供自动化的Token认证功能，支持：
- * - 自动在请求头中添加认证Token
- * - 401错误时的自动处理和回调
- * - 可配置的Token格式和请求头
- * - 支持Bearer Token等标准认证方式
- * 
- * 核心特性：
- * - 异步Token获取支持
- * - 灵活的认证头配置
- * - 401错误自动处理
- * - 类型安全的回调机制
- */
 
 import type { HttpPlugin } from './types.js'
 
@@ -21,51 +6,15 @@ import type { HttpPlugin } from './types.js'
  * 定义了认证插件的各种可配置参数
  */
 export interface AuthPluginOptions {
-  /** 
-   * 获取当前有效Token的函数（可选）
-   * 
-   * @returns Token字符串、null（无Token）或Promise
-   * 
-   * 注意事项：
-   * - 返回null时不会添加认证头
-   * - 支持异步获取（如从存储中读取）
-   * - 每次请求前都会调用此函数
-   * 
-   */
+
   getToken?: () => string | null | Promise<string | null>
-  
-  /** 
-   * 刷新Token的函数（可选，暂未使用）
-   * 
-   * @returns 新的Token字符串、null或Promise
-   * 
-   * 预留接口，用于未来实现自动Token刷新功能
-   * 当前版本不会自动调用此函数
-   */
+
   refreshToken?: () => string | null | Promise<string | null>
-  
-  /** 
-   * Token过期时的回调函数（可选）
-   * 
-   * 当收到401状态码时会触发此回调
-   * 可用于通知用户重新登录、清除本地Token等
-   */
+
   onTokenExpired?: () => void | Promise<void>
-  
-  /** 
-   * Token所在的HTTP头名称，默认 'Authorization'
-   * 
-   * 大多数API使用标准的Authorization头，但某些API可能使用自定义头名
-   */
+
   tokenHeader?: string
-  
-  /** 
-   * Token的前缀，默认 'Bearer '
-   * 
-   * 用于构造完整的认证头值：`${tokenPrefix}${token}`
-   * 注意Bearer后面有一个空格
-   * 
-   */
+
   tokenPrefix?: string
 }
 
