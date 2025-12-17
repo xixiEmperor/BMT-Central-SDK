@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<style>
+		.container {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+		}
+
+		.container > div {
+			display: flex;
+			width: 50px;
+			height: 50px;
+			border: 1px solid red;
+			justify-content: center;
+			align-items: center;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="hour"></div>
+		<span>:</span>
+		<div class="minutes"></div>
+		<span>:</span>
+		<div class="seconds"></div>
+	</div>
+</body>
+<script>
+	let deadline = new Date('2025-10-23 14:00:00').getTime()
+	let now = Date.now()
+	let lastTime = new Date(deadline - now)
+	let timer = null
+	const h = document.querySelector('.hour')
+	const m = document.querySelector('.minutes')
+	const s = document.querySelector('.seconds')
+	timer = setInterval(() => {
+		if (deadline - now <= 0) clearInterval(timer)
+		now = Date.now()
+		lastTime = new Date(deadline - now) 
+		const hour = lastTime.getUTCHours()
+		const minutes = lastTime.getMinutes()
+		const seconds = lastTime.getSeconds()
+		h.innerHTML = hour < 10 ? '0' + hour : hour
+		m.innerHTML = minutes < 10 ? '0' + minutes : minutes
+		s.innerHTML = seconds < 10 ? '0' + seconds : seconds
+	}, 1000)
+</script>
+</html>

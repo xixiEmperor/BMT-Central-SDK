@@ -1,0 +1,1 @@
+type MyOmit<T, U extends keyof any> = Pick<T, Exclude<keyof T, U>>

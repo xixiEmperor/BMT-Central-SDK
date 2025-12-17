@@ -1,28 +1,26 @@
-// Scheduler，限制并发执行的任务队列
 class Scheduler {
-  constructor(max = 2) {
-    this.max = max;        // 最大并发数
-    this.running = 0;      // 当前运行中的任务数
-    this.queue = [];       // 等待队列
+  constructor (max) {
+    this.max = max
+    this.queue = []
+    this.running = 0
   }
 
-  // 接收一个返回 Promise 的函数 taskFn
-  add(taskFn) {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ taskFn, resolve, reject });
-      this._runNext();
-    });
+  add (task) {
+    return new Promise(resolve => {
+      this.queue.push({task, resolve})
+      this.run()
+    })
   }
 
-  _runNext() {
-    if (this.running >= this.max || this.queue.length === 0) return;
-    const { taskFn, resolve, reject } = this.queue.shift();
-    this.running++;
-    taskFn().then(() => {
-			this.running--
-			resolve()
-			this._runNext()
-		})
+  run () {
+    if(this.running >= this.max || this.queue.length === 0) return
+    const { task, resolve } = this.queue.shift()
+    this.running++
+    task().then(() => {
+      this.running--
+      resolve()
+      this.run()
+    })
   }
 }
 

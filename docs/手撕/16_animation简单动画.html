@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<style>
+		body {
+			position: relative;
+			height: 100vh
+		}
+
+		.foo {
+			position: absolute;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			background-color: red;
+			animation: round 5s ease infinite;
+		}
+
+		@keyframes round {
+			0% {
+				top: 0;
+				left: 0;
+			}
+
+			33% {
+				left: 99%;
+				top: 0;
+			}
+
+			67% {
+				left: 99%;
+				top: 99%;
+			}
+
+			100% {
+				top: 0;
+				left: 0;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="foo">
+
+	</div>
+</body>
+</html>
